@@ -134,6 +134,34 @@
   .fuss a:hover, .fuss a:focus-visible { text-decoration-color: #fff; }
   .fuss .trenner-quer { display: none; }
 
+  /* Kopf im Hochformat – Vorschlag 6 „Titel links, Punkte rechts“ (MZ, 24.10.2026; Vorlage Material/Vorschau/kopf-hoch/):
+     Zeile 1 weißer Logo-Balken: Logo links (wie auf der RSI-Website), Ton-Knopf rechts. Zeile 2: Wortmarke links bündig mit dem
+     Logo, rechts auf gleicher Höhe die Punkte-Anzeige wie im Querformat (Überschrift über der Zahl, Doppelpunkt aus).
+     Farben und Elemente unverändert; Querformat/PC überschreiben diese Regeln weiter unten. */
+  :root { --rand: 16px; --best-t: 11px; --best-z: 20px; --balken-h: 56px; }
+  .logobalken { justify-content: flex-start; padding-left: calc(var(--rand) + env(safe-area-inset-left)); }
+  #tonKnopf { right: calc(var(--rand) + env(safe-area-inset-right)); }
+  .kopf {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;
+    padding: 6px calc(var(--rand) + env(safe-area-inset-right)) 14px calc(var(--rand) + env(safe-area-inset-left));
+  }
+  /* Wortmarke ≈ 9,2em breit; daneben bleibt Platz für die Punkte-Anzeige (ca. 112px, mit Siegel ca. 146px) */
+  .name { justify-content: flex-start; font-size: min(var(--name), calc((100vw - 2 * var(--rand) - 12px - var(--punkte-b, 112px)) / 9.2)); }
+  .kopf:has(.siegel) { --punkte-b: 146px; }
+  .best { margin: 0; position: relative; display: flex; flex-direction: column; align-items: flex-end; flex: none;
+    font-size: var(--best-t); line-height: 1.15; letter-spacing: .3px; white-space: nowrap; }
+  .best .dp { display: none; }
+  .best b { font-size: var(--best-z); margin-top: 3px; }
+  /* kleines Siegel links neben der Punkte-Anzeige (Zeile bleibt so hoch wie sie ist) */
+  .best .siegel { position: absolute; right: calc(100% + 6px); top: 50%; width: 30px; height: 30px; margin: -15px 0 0; }
+  /* Tablet hoch: alles etwas größer */
+  @media (orientation: portrait) and (min-width: 600px) {
+    :root { --rand: 28px; --balken-h: 72px; --logo-h: 50px; --ton: 36px; --name: 44px; --best-t: 14px; --best-z: 28px; --punkte-b: 150px; }
+    .kopf:has(.siegel) { --punkte-b: 196px; }
+    .kopf { padding-top: 10px; padding-bottom: 18px; }
+    .best .siegel { width: 42px; height: 42px; margin-top: -21px; right: calc(100% + 10px); }
+  }
+
   /* Querformat (MZ, 23.10.2026, „passt so“): drei Blöcke nebeneinander, gleich breit und hoch, Inhalt senkrecht mittig */
   @media (orientation: landscape) and (min-width: 560px) {
     .bloecke { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; }
