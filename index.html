@@ -140,7 +140,7 @@
      Farben und Elemente unverändert; Querformat/PC überschreiben diese Regeln weiter unten. */
   :root { --rand: 16px; --best-t: 11px; --best-z: 20px; --balken-h: 56px; }
   .logobalken { justify-content: flex-start; padding-left: calc(var(--rand) + env(safe-area-inset-left)); }
-  #tonKnopf { right: calc(var(--rand) + env(safe-area-inset-right)); }
+  #tonKnopf { right: calc(var(--rand) + env(safe-area-inset-right) + var(--ton-versatz, 0px)); }   /* mittig über der Punkte-Anzeige (MZ 24.10.2026) */
   .kopf {
     display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;
     padding: 6px calc(var(--rand) + env(safe-area-inset-right)) 14px calc(var(--rand) + env(safe-area-inset-left));
@@ -148,7 +148,7 @@
   /* Wortmarke ≈ 9,2em breit; daneben bleibt Platz für die Punkte-Anzeige (ca. 112px, mit Siegel ca. 146px) */
   .name { justify-content: flex-start; font-size: min(var(--name), calc((100vw - 2 * var(--rand) - 12px - var(--punkte-b, 112px)) / 9.2)); }
   .kopf:has(.siegel) { --punkte-b: 146px; }
-  .best { margin: 0; position: relative; display: flex; flex-direction: column; align-items: flex-end; flex: none;
+  .best { margin: 0; position: relative; display: flex; flex-direction: column; align-items: center; flex: none;   /* Zahl mittig unter dem Text (MZ 24.10.2026) */
     font-size: var(--best-t); line-height: 1.15; letter-spacing: .3px; white-space: nowrap; }
   .best .dp { display: none; }
   .best b { font-size: var(--best-z); margin-top: 3px; }
@@ -441,6 +441,17 @@
     // Gesamtpunktzahlen immer vierstellig, z. B. „0.000“ (MZ 24.10.2026)
     const vier = n => n.toLocaleString('de-DE', { minimumIntegerDigits: 4 });
     $('.best').append(el('b', vier(gesamt)));
+    // Hochformat: Ton-Knopf mittig über der Punkte-Anzeige (MZ 24.10.2026) – Versatz aus der Breite der Anzeige
+    if (!window.__tonMitte) {
+      const tonMitte = () => {
+        const b = $('.best'), t = $('#tonKnopf');
+        if (b && t) document.documentElement.style.setProperty('--ton-versatz', Math.max(0, (b.offsetWidth - t.offsetWidth) / 2) + 'px');
+      };
+      window.__tonMitte = tonMitte;
+      if (window.ResizeObserver) new ResizeObserver(tonMitte).observe($('.best'));
+      addEventListener('resize', tonMitte);
+    }
+    window.__tonMitte();
     // Gesamtpunktzahl je Bereich (MZ, 23.10.2026): nur die Zahl, fett, mit Tausenderpunkt (kein „Gesamt:“), rechtsbündig
     // unter den Bestwerten; Summe der Bestwerte des Bereichs (0, wenn noch nichts gespielt ist – auch bei abgegrauten Bereichen)
     $$('.block').forEach(blk => {
