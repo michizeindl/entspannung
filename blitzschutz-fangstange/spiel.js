@@ -21,7 +21,7 @@
   const ruhig = () => TEST.ruhig || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   // ---------- Regeln ----------
-  const ANZAHL = 20, MAX_JE = 50, EINSCHLAEGE_MAX = 3, ABZUG_WL = 10;
+  const ANZAHL = 20, MAX_JE = 50, EINSCHLAEGE_MAX = 3, ABZUG_WL = 100, ABZUG_EINSCHLAG = 100;   // MZ 24.10.2026: je −100, nie unter 0
   const VOLL_BIS = 0.45;            // bis zu dieser Reaktionszeit (s) volle 50 Punkte, danach linear bis 20 Punkte bei Einschlag
   const MIN_PUNKTE = 20;
   const T_LADEN = [2.3, 1.1];        // Aufladezeit von Blitz 1 bis Blitz 20 (s)
@@ -260,6 +260,10 @@
     for (let k = 0; k < 6; k++) S.rauch.push({ x: x + (Math.random() - 0.5) * 20, y: y - 6, vx: (Math.random() - 0.5) * 16, r: 8 + Math.random() * 8, leben: 1.6 + Math.random() * 1.2, l0: 2.8 });
     S.wackeln = ruhig() ? 0 : 1;
     figur('entsetzt', 1.5);
+    // Einschlag ins Dach (zu spät oder falsche Stange): −100 Punkte, Punktestand nie unter 0
+    S.abzugEinschlag = (S.abzugEinschlag || 0) + Math.min(S.punkte, ABZUG_EINSCHLAG);
+    S.punkte = Math.max(0, S.punkte - ABZUG_EINSCHLAG);
+    text('−' + ABZUG_EINSCHLAG, Math.max(L.kurz * 0.3, Math.min(B - 40, x)), y - 40, '#ffb4a8');   // nicht unter der Figur
     R_.ton('dach');
     R_.vibrieren([60, 40, 90]);
     anzeigen();
@@ -292,7 +296,7 @@
   function endbild(punkte, abbruch) {
     const [titel, stempel, art, pose] = abbruch ? ['Zu viele Einschläge', 'MÄNGEL', 'schlecht', 'entsetzt'] : bewertung(punkte);
     const felder = [['Blitze abgeleitet', S.abgeleitet + ' von ' + ANZAHL]];
-    if (S.einschlaege) felder.push(['Einschläge', String(S.einschlaege)]);
+    if (S.einschlaege) felder.push(['Einschläge', S.einschlaege + (abbruch ? '' : '× (−' + (S.einschlaege * ABZUG_EINSCHLAG).toLocaleString('de-DE') + ' Punkte)')]);
     if (S.wlGetippt) felder.push(['Wetterleuchten angetippt', S.wlGetippt + '× (−' + S.wlGetippt * ABZUG_WL + ' Punkte)']);
     R_.ende(punkte, {
       ueberschrift: titel, felder, stempel: { text: stempel, art }, figur: POSEN[pose],

@@ -185,6 +185,17 @@
     const fh = hoch() ? klemm(H * 0.14, 84, 130) : klemm(H * 0.3, 90, 190);
     return { fh, fw: fh * 0.58 };
   }
+  // Knopf „Weiter“ unten rechts (MZ, 24.10.2026), Abstand zum Rand inkl. Geräte-Aussparung
+  let sonde = null;
+  function sicher() {
+    if (!sonde) { sonde = document.createElement('div'); sonde.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) 0'; document.body.appendChild(sonde); }
+    const s = getComputedStyle(sonde); return { r: parseFloat(s.paddingRight) || 0, u: parseFloat(s.paddingBottom) || 0 };
+  }
+  function knopfRect() {
+    const sa = sicher(), w = Math.round(klemm(B * 0.32, 112, 170)), h = 46;
+    const x = B - w - 14 - sa.r, y = H - h - 14 - sa.u;
+    return [x, y, x + w, y + h];
+  }
   function figurRect() { const { fh, fw } = figurMasse(); return [0, H - fh - 10, fw + 14, H]; }
   // Standard-Ansicht eines Dachs für das aktuelle Format: Himmelslinie bei 33 % (hoch) bzw. 20 % (quer) der Höhe, Bild
   // deckt Breite und Höhe ab (unten darf das Dach angeschnitten sein)
@@ -305,7 +316,7 @@
     const A = abb(sz);
     const aus = Object.assign({}, AUSSTATTUNG[nr]);
     if (v > 50) { aus.halter = Math.max(2, aus.halter - 2); aus.kuppel = 0; }   // eng (z. B. flaches Querformat): weniger Beiwerk
-    const fig = figurRect();
+    const fig = figurRect(), knopfR = knopfRect();
     const fl = [10, OBEN, B - 10, H - 6];
     const pFern = Math.max(0.3, (d.rand + 90 - d.vp) / (1024 - d.vp));
     const pNah = Math.min(1.03, A.pVon(H - 10));
@@ -364,7 +375,7 @@
       const g = geo(sz, t, A);
       const rahmen = TEIL[t.typ].draht ? huelle(g.boxen) : [g.x, g.y, g.x + g.w, g.y + g.h];
       if (rahmen[0] < fl[0] || rahmen[2] > fl[2] || rahmen[1] < fl[1] || rahmen[3] > fl[3]) return false;
-      if (g.boxen.some(b => schneiden(b, fig, 4))) return false;
+      if (g.boxen.some(b => schneiden(b, fig, 4) || schneiden(b, knopfR, 6))) return false;
       for (const o of teile) {
         if ((t.schutzFuer && t.schutzFuer === o) || (o.schutzFuer && o.schutzFuer === t)) continue;   // Stange hinter ihrem Aufbau
         const go = geo(sz, o, A);
@@ -605,7 +616,8 @@
   }
   function anzeigen() {
     const sz = S && S.szene;
-    R_.anzeige('Dach ' + (S.nr + 1) + '/' + ANZAHL, sz ? 'Mängel ' + sz.gefunden + '/' + sz.M : '');
+    // keine Mängel-Anzahl (MZ, 24.10.2026: nicht verraten, wie viele noch fehlen)
+    R_.anzeige('Dach ' + (S.nr + 1) + '/' + ANZAHL, '');
   }
   const q = () => S.phase === 'suchen' || S.phase === 'zeitum' || S.phase === 'geschafft' ? Math.min(1, S.uhr / ZEIT) : 0;
 
@@ -640,10 +652,20 @@
   function zeitUm() {
     const sz = S.szene;
     S.uhr = ZEIT;
-    S.phase = 'zeitum'; S.phaseT = 0; S.uebersehenTon = false;
+    S.phase = 'zeitum'; S.phaseT = 0; S.uebersehenTon = false; S.vorzeitig = false;
     S.blitz = { t0: S.zeit, pfad: blitzPfad() };
     R_.ton('zeitum'); R_.vibrieren([60, 40, 60]);
     figur('entsetzt', 2.2);
+    dachWerten(sz, 0);
+  }
+  // „Weiter“: vollständig → wie bisher geschafft (Zeitbonus aus der Restzeit beim Tippen); sonst übersehene Mängel zeigen,
+  // ohne Zeitbonus und ohne zusätzlichen Abzug (Variante a, MZ 24.10.2026)
+  function fertigTippen() {
+    const sz = S.szene;
+    R_.ton('klick');
+    if (sz.gefunden >= sz.M) return alleGefunden();
+    S.phase = 'zeitum'; S.phaseT = 0; S.uebersehenTon = false; S.vorzeitig = true;
+    figur('entsetzt', 1.6);
     dachWerten(sz, 0);
   }
   function alleGefunden() {
@@ -701,6 +723,8 @@
     S.klicks.push({ x, y, t0: S.zeit });
     if (S.phase === 'zeitum' && S.phaseT >= UEBERSEHEN.ab + UEBERSEHEN.sperre) { weiter(); return; }   // Anzeige überspringen
     if (S.phase !== 'suchen') return;
+    const kr = knopfRect();
+    if (x >= kr[0] - 4 && x <= kr[2] + 4 && y >= kr[1] - 4 && y <= kr[3] + 4) { S.knopfDruck = S.zeit; fertigTippen(); return; }
     S.hinweis = false;
     const sz = S.szene, A = abb(sz);
     // nächstes Teil, dessen Trefferfläche die Tippstelle enthält (bei Überlappung das mit der nächsten Mitte)
@@ -722,7 +746,7 @@
       S.schilder.push({ t: best, t0: S.zeit, ende: S.zeit + FUNDTEXT });
       gefundenTon();
       anzeigen();
-      if (sz.gefunden >= sz.M) alleGefunden(); else figur('daumen', 1.0);
+      figur('daumen', 1.0);   // kein automatischer Wechsel mehr, wenn alle gefunden sind (MZ, 24.10.2026)
       return;
     }
     // Intaktes angetippt: 2s Abzug
@@ -767,6 +791,7 @@
     figurZeichnen(g, zustand);
     if (S.phase === 'suchen' || S.phase === 'geschafft' || S.phase === 'zeitum') zeitbalken(g, ruh);
     if (S.hinweis && S.nr === 0 && S.phase === 'suchen' && S.uhr < 4.5) hinweisZeichnen(g, t, ruh);
+    if (zustand === 'spiel' && S.phase === 'suchen') weiterKnopf(g, t);
     abzuegeZeichnen(g);
     klicksZeichnen(g);
     g.canvas.style.cursor = zustand === 'spiel' ? 'pointer' : '';
@@ -1030,10 +1055,21 @@
     g.fillText(Math.ceil(rest) + 's', x + w + 10, y + h / 2 + 1);
     g.restore();
   }
+  function weiterKnopf(g, t) {
+    const [x0, y0, x1, y1] = knopfRect(), w = x1 - x0, h = y1 - y0, druck = S.knopfDruck && t - S.knopfDruck < 0.12;
+    const ein = Math.min(1, S.phaseT / 0.3);
+    g.save(); g.globalAlpha = ein;
+    g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 12; g.shadowOffsetY = 4;
+    g.fillStyle = '#0F9CD8'; rund(g, x0, y0 + (druck ? 1 : 0), w, h, h / 2); g.fill();
+    g.shadowColor = 'transparent';
+    g.fillStyle = '#fff'; g.font = '700 18px "Titillium Web", "Segoe UI", system-ui, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Weiter', x0 + w / 2, y0 + h / 2 + 1);
+    g.restore();
+  }
   function hinweisZeichnen(g, t, ruh) {
     const a = Math.min(1, S.uhr / 0.3, (4.5 - S.uhr) / 0.4);
     if (a <= 0) return;
-    const text = 'Tippe auf Mängel';
+    const text = 'Tippe auf Mängel – dann Weiter';
     g.save(); g.globalAlpha = a * (ruh ? 1 : 0.85 + 0.15 * Math.sin(t * Math.PI * 2 / 1.2));
     g.font = '700 15px "Titillium Web", "Segoe UI", system-ui, sans-serif';
     const tw = g.measureText(text).width + 26, tx = (B - tw) / 2, ty = 78;
@@ -1091,7 +1127,7 @@
     texte: {
       titel: 'Dach-Check',
       untertitel: 'Findest du jeden Mangel?',
-      anleitung: 'Auf jedem Dach stecken Mängel in der Blitzschutzanlage. Schau genau hin. Tippe sie an, bevor das Gewitter da ist. Wer Intaktes antippt, verliert 2s. Pro Dach hast du 25s.',   // geschütztes Leerzeichen: „2s“ nicht allein in der letzten Zeile
+      anleitung: 'Auf jedem Dach stecken Mängel in der Blitzschutzanlage. Schau genau hin und tippe sie an, bevor das Gewitter da ist. Wenn du meinst, alle gefunden zu haben, tippe auf Weiter. Wer Intaktes antippt, verliert 2s. Pro Dach hast du 25s.',   // geschütztes Leerzeichen: „2s“ nicht allein in der letzten Zeile
     },
     // Klänge (Sound Artist, 23.10.2026, alle Sonniss GDC 2026): Einzelklänge in der Abstufung der Lieferung (nicht einzeln
     // normalisiert), die beiden Klangteppiche normalisiert. Wind am Rundenbeginn, mit dem Zuziehen Überblendung zum nahen

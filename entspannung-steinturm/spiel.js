@@ -487,7 +487,12 @@
     // Drehen (Knopf, Taste, zweiter Finger auf Knopf)
     const dreh = S.drehen.knopf || S.drehen.taste || (S.drehen.zweit ? S.drehen.zweit.dir : 0);
     if (h && S.phase === 'hand' && dreh) { h.th += dreh * DREH * dt; h.gedreht = true; S.loesung = null; }
-    if (h && S.phase === 'hand') {
+    if (h && S.phase === 'hand' && h.frei && h.ziel) {
+      // am Finger (MZ, 24.10.2026): Stein folgt dem Finger in x und y mit Versatz nach oben, weich, ohne Springen
+      h.ein = Math.min(1, h.ein + dt / 0.18);
+      const a = Math.min(1, dt * 22);
+      h.x += (h.ziel[0] - h.x) * a; h.y = h.y == null ? h.ziel[1] : h.y + (h.ziel[1] - h.y) * a;
+    } else if (h && S.phase === 'hand') {
       h.ein = Math.min(1, h.ein + dt / 0.28);
       // Schwebehöhe nur aus der Gesamthöhe des Turms (höchster Punkt + Abstand), weich in beide Richtungen – kein Hüpfen
       // über Kanten beim Verschieben (MZ, 24.10.2026). Wo er landet, zeigt der Schatten.
@@ -521,9 +526,12 @@
     S.phase = 'hand'; S.phaseT = 0; S.hinweis = false;
     R_.ton('aufnehmen');
   }
-  function zuruecklegen() {
+  function zuruecklegen(wandern) {
     const h = S.hand; if (!h) return;
-    S.optionen[h.k].weg = false; S.optionen[h.k].t0 = S.zeit;
+    const o = S.optionen[h.k];
+    o.weg = false; o.t0 = S.zeit;
+    // Stein wandert von der Loslass-Stelle zurück an seinen Platz
+    if (wandern && h.y != null) { o.zurueck = { von: bild(h.x, h.y), z: S.kam.z, th: h.th, t0: S.zeit }; o.t0 = S.zeit - 1; }
     S.hand = null; S.phase = 'wahl'; S.phaseT = 0; S.loesung = null;
   }
   function ablegen() {
@@ -538,11 +546,21 @@
       S.phase = 'fallen'; S.phaseT = 0; S.hand = null;
       return;
     }
-    S.sink = { st: h.st, x: h.x, y0: h.y, y1: y, th: h.th, dauer: (0.3 + (y - h.y) / 110) / TEMPO };
+    // liegt der Stein tiefer als seine Landestelle (seitlich im Turmbereich losgelassen): erst sanft über die Spitze heben
+    const schwebe = y - KLAR, heben = h.y > schwebe ? { von: h.y, dauer: (0.25 + (h.y - schwebe) / 160) / TEMPO } : null;
+    const y0 = heben ? schwebe : h.y;
+    S.sink = { st: h.st, x: h.x, y0, y1: y, y: h.y, th: h.th, heben, dauer: (0.3 + (y - y0) / 110) / TEMPO };
     S.hand = null; S.phase = 'sinken'; S.phaseT = 0;
   }
   function sinken() {
-    const s = S.sink, p = Math.min(1, S.phaseT / s.dauer);
+    const s = S.sink;
+    if (s.heben) {
+      const q = Math.min(1, S.phaseT / s.heben.dauer), e = 0.5 - 0.5 * Math.cos(Math.PI * q);
+      s.y = s.heben.von + (s.y0 - s.heben.von) * e;
+      if (q < 1) return;
+      s.heben = null; S.phaseT = 0;
+    }
+    const p = Math.min(1, S.phaseT / s.dauer);
     const e = 1 - Math.pow(1 - p, 2.2);   // weich: wird zum Aufsetzen hin langsamer
     s.y = s.y0 + (s.y1 - s.y0) * e;
     if (p >= 1) {
@@ -679,13 +697,19 @@
     const k = imSlot(x, y);
     if (k >= 0 && S.optionen[k] && !S.optionen[k].weg) {
       aufheben(k, true, x);
+      const h = S.hand;
+      // Start genau an der Stelle des Steins am Ufer; beim Ziehen bleibt er am Finger (Versatz nach oben)
+      h.frei = true; h.versatz = null;
+      const [wx, wy] = welt(h.von[0], h.von[1]); h.x = wx; h.y = wy; h.ziel = [wx, wy];
       druck = { art: 'slot', x0: x, y0: y, t0: S.zeit, bewegt: false };
       return;
     }
     if (k >= 0 && S.hand && S.hand.k === k) { zuruecklegen(); druck = null; return; }
     if (S.phase === 'hand' && S.hand) {
       const h = S.hand;
-      h.gehalten = true; h.versatz = h.x - welt(x, y)[0];
+      h.gehalten = true;
+      // schwebenden Stein greifen: er bleibt in seiner Lage zum Finger (relativ) und folgt in x und y
+      const [wx, wy] = welt(x, y); h.versatz = [h.x - wx, h.y - wy]; h.frei = true; h.ziel = [h.x, h.y];
       druck = { art: 'turm', x0: x, y0: y, t0: S.zeit, bewegt: false };
     }
   }
@@ -693,8 +717,15 @@
     if (!druck || !S.hand || !S.hand.gehalten) return;
     if (Math.hypot(x - druck.x0, y - druck.y0) > 9) druck.bewegt = true;
     const h = S.hand;
-    h.x = Math.max(-90, Math.min(90, welt(x, y)[0] + h.versatz));
-    h.bewegt = h.bewegt || druck.bewegt;
+    h.fingerY = y;
+    if (!druck.bewegt) return;   // kleine Zitterbewegung beim Antippen: Stein bleibt liegen
+    if (!h.versatz) {   // vom Ufer gezogen: Stein über dem Finger (Finger verdeckt ihn nicht)
+      const hoch = h.st.h * S.kam.z, off = Math.max(48, hoch * 0.55 + 28);
+      const [wx, wy] = welt(x, y - off); h.ziel = [Math.max(-120, Math.min(120, wx)), wy];
+    } else {
+      const [wx, wy] = welt(x, y); h.ziel = [Math.max(-120, Math.min(120, wx + h.versatz[0])), wy + h.versatz[1]];
+    }
+    h.bewegt = true;
   }
   function hoch(x, y) {
     const d = druck; druck = null;
@@ -703,14 +734,15 @@
     const h = S.hand;
     if (!h || S.phase !== 'hand') return;
     h.gehalten = false;
-    if (d.art === 'slot') {
-      // nur angetippt: Stein bleibt über dem Turm (drehen, verschieben, dann loslassen)
-      if (!d.bewegt) { h.x = turmSpitzeX(S.turm); return; }
-      // zurück aufs Ufer gezogen: wieder hinlegen
-      if (imSlot(x, y) >= 0) { zuruecklegen(); return; }
-      ablegen(); return;
+    if (d.art === 'slot' && !d.bewegt) {
+      // nur angetippt: Stein schwebt über der Turmspitze (drehen, verschieben, dann loslassen)
+      h.frei = false; h.x = turmSpitzeX(S.turm); return;
     }
-    if (d.art === 'turm') ablegen();
+    if (d.art === 'turm' && !d.bewegt) { h.frei = false; ablegen(); return; }   // schwebenden Stein angetippt = ablegen
+    // losgelassen: unten bei der Steinauswahl bzw. nicht über dem Turm → zurück an seinen Platz; über dem Turm → ablegen
+    const ueberUfer = imSlot(x, y) >= 0 || (L.hoch ? y > L.slots[0].y - 6 : x > L.slots[0].x - 6);
+    if (ueberUfer || landen(S.turm, h.st, h.x, h.th) == null) { zuruecklegen(true); return; }
+    ablegen();
   }
   // Mausrad, Pfeiltasten, Leertaste; zweiter Finger (auf Knopf = drehen, sonst Drehen mit zwei Fingern)
   const feld = document.getElementById('feld');
@@ -1086,7 +1118,11 @@
       g.restore();
       const versatz = (1 - ein) * 14;
       // Schwerpunkt liegt im Bild nicht in der Mitte: Stein so setzen, dass sein Umriss mittig steht
-      steinZeichnen(g, st, 0, 0, 0, ein, k1 * atmen, cx + (st.s[0] - st.g[0] / 2) * k1 * atmen, cy + versatz + (st.s[1] - st.g[1] / 2) * k1 * atmen);
+      const zx = cx + (st.s[0] - st.g[0] / 2) * k1 * atmen, zy = cy + versatz + (st.s[1] - st.g[1] / 2) * k1 * atmen;
+      if (o.zurueck && S.zeit - o.zurueck.t0 < 0.4) {   // wandert von der Loslass-Stelle zurück
+        const q = (S.zeit - o.zurueck.t0) / 0.4, e = 1 - Math.pow(1 - q, 3), z = o.zurueck;
+        steinZeichnen(g, st, 0, 0, z.th * (1 - e), 1, z.z + (k1 - z.z) * e, z.von[0] + (zx - z.von[0]) * e, z.von[1] + (zy - z.von[1]) * e);
+      } else steinZeichnen(g, st, 0, 0, 0, ein, k1 * atmen, zx, zy);
     });
   }
   function handZeichnen(g, t) {

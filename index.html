@@ -31,7 +31,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; overscroll-behavior: none; }
   html { background: #fff; }
-  html.unten { background: var(--grau); }   /* Rand unter dem Band beim Weiterwischen in der Farbe des Bands */
+  html.unten { background: #fff; }   /* Rand unter dem Band beim Weiterwischen in der Farbe des Bands (jetzt weiß) */
   body {
     min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: #fff; color: var(--dunkel);
     font-family: "Titillium Web", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
@@ -123,15 +123,47 @@
   /* noch nicht gebaut: nur abgegraut, nicht antippbar, ohne Hinweistext (kein „demnächst“, MZ 21.10.2026) */
   .spiel.bald { opacity: .42; pointer-events: none; cursor: default; }
   .spiel.bald .play { background: #8a8a8a; }
-  /* Band unten: Adresse, Impressum, Datenschutz */
+  /* Band unten: Adresse, Impressum, Datenschutz – weiß mit grauer Schrift (MZ, 24.10.2026) */
   .fuss {
-    flex: none; background: var(--grau); color: #fff; font-size: 11px; line-height: 1.45; text-align: center;
-    padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+    flex: none; background: #fff; color: var(--grau); font-size: 11px; line-height: 1.45; text-align: center;
+    padding: 10px 8px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid #e4e4e4;
   }
+  /* „Dein Siegel“: graue Bühne mit Lichtschein, nur Hochformat (quer/PC: Tippen aufs kleine Siegel öffnet es groß) */
+  .siegelflaeche {
+    position: relative; flex: none; display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: 26px 18px 30px; color: #fff; background: radial-gradient(circle at 50% 46%, rgba(255,236,170,.32), rgba(255,236,170,0) 46%), var(--grau);
+    animation: rein .6s .2s ease-out both;
+  }
+  .siegelflaeche[hidden] { display: none; }
+  .siegelflaeche h2 { margin: 0 0 14px; font-size: var(--h2); font-weight: 700; line-height: 1; }
+  .siegelflaeche .gross, #siegelGross .gross { position: relative; width: min(220px, 62vw); aspect-ratio: 1; filter: drop-shadow(0 10px 20px rgba(0,0,0,.4)); }
+  .siegelflaeche .gross svg, #siegelGross .gross svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .siegelflaeche .stufe, #siegelGross .stufe { margin: 14px 0 10px; font-size: 15px; }
+  .siegelflaeche .ziel, #siegelGross .ziel { margin: 0; display: inline-block; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.55);
+    background: rgba(255,255,255,.08); font-size: 13px; }
+  .siegelflaeche .ziel.oben, #siegelGross .ziel.oben { border-color: transparent; background: none; font-weight: 600; }
+  /* ruhiger Glanz über dem Siegel (wie in der Feier), alle 6s */
+  .glanzlauf { position: absolute; inset: 4%; border-radius: 50%; overflow: hidden; pointer-events: none; }
+  .glanzlauf i { position: absolute; top: -10%; bottom: -10%; left: 0; width: 34%; opacity: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.6) 50%, rgba(255,255,255,0)); transform: translateX(-120%) skewX(-18deg);
+    animation: siegelGlanz 6s 1.2s ease-in-out infinite; }
+  @keyframes siegelGlanz { 0% { opacity: .9; transform: translateX(-120%) skewX(-18deg); } 22%, 100% { opacity: .9; transform: translateX(330%) skewX(-18deg); } }
+  @media (orientation: landscape) and (min-width: 560px) { .siegelflaeche { display: none !important; } }
+  /* kleines Siegel ist ein Knopf: öffnet das Siegel groß */
+  .best .siegel { cursor: pointer; }
+  .best .siegel:focus-visible { outline: 2px solid var(--blau); outline-offset: 3px; border-radius: 50%; }
+  #siegelGross { position: fixed; inset: 0; z-index: 45; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 20px; color: #fff; background: rgba(25,25,25,.66); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); cursor: pointer;
+    animation: einblendenS .3s ease-out both; }
+  #siegelGross .gross { width: min(300px, 64vw, 48vh); animation: siegelRein .45s ease-out both; }
+  #siegelGross .stufe { font-size: 20px; margin-top: 18px; }
+  #siegelGross .tipp { margin: 18px 0 0; font-size: 13px; opacity: .85; }
+  @keyframes einblendenS { from { opacity: 0; } }
+  @keyframes siegelRein { from { opacity: 0; transform: scale(.82); } }
   .fuss p { margin: 0; }
   .fuss .teil { white-space: nowrap; }
-  .fuss a { color: inherit; text-decoration: underline; text-decoration-color: rgba(255,255,255,.5); text-underline-offset: 2px; }
-  .fuss a:hover, .fuss a:focus-visible { text-decoration-color: #fff; }
+  .fuss a { color: inherit; text-decoration: underline; text-decoration-color: rgba(87,87,87,.5); text-underline-offset: 2px; }
+  .fuss a:hover, .fuss a:focus-visible { text-decoration-color: var(--grau); }
   .fuss .trenner-quer { display: none; }
 
   /* Kopf im Hochformat – Vorschlag 6 „Titel links, Punkte rechts“ (MZ, 24.10.2026; Vorlage Material/Vorschau/kopf-hoch/):
@@ -341,6 +373,8 @@
     #tonKnopf:hover, #tonKnopf:active, #tonKnopf.gedrueckt { transform: none; }
     a.spiel.gedrueckt { filter: brightness(1.08); }
     .tippring, .funke { display: none; }
+    .glanzlauf i { animation: none; }
+    .siegelflaeche, #siegelGross, #siegelGross .gross { animation: einblendenS .3s ease-out both; }
   }
 </style>
 <!-- Kundendaten früh laden; Intro nur beim ersten Öffnen in dieser Sitzung (sessionStorage, Präfix mg:).
@@ -399,6 +433,13 @@
   </section>
 </main>
 
+<!-- „Dein Siegel“ (MZ, 24.10.2026, Entwurf B): nur im Hochformat und nur, wenn ein Siegel erreicht ist -->
+<section class="siegelflaeche" hidden aria-label="Dein Siegel">
+  <h2>Dein Siegel</h2>
+  <div class="gross"></div>
+  <p class="stufe"></p>
+  <p class="ziel"></p>
+</section>
 <footer class="fuss">
   <p class="adresse"></p><span class="trenner-quer"> – </span><p class="rechtliches"></p>
 </footer>
@@ -720,10 +761,48 @@
     function kleinSetzen(n) {
       let k = $('.best .siegel');
       if (n < 0) { if (k) k.remove(); kleinStufe = -1; return null; }
-      if (!k) { k = el('span', null, { className: 'siegel' }); k.setAttribute('role', 'img'); $('.best').append(k); }
+      if (!k) {
+        k = el('span', null, { className: 'siegel' }); k.setAttribute('role', 'button'); k.tabIndex = 0; $('.best').append(k);
+        k.addEventListener('click', e => { e.stopPropagation(); if (kleinStufe >= 0 && !feierLaeuft) siegelOeffnen(kleinStufe); });
+        k.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && kleinStufe >= 0) { e.preventDefault(); siegelOeffnen(kleinStufe); } });
+      }
       if (kleinStufe !== n) { k.innerHTML = siegelSVG(STUFEN[n].id); kleinStufe = n; }
-      k.setAttribute('aria-label', 'Siegel Meister/in der ' + titel + ' – ' + STUFEN[n].name);
+      k.setAttribute('aria-label', 'Siegel Meister/in der ' + titel + ' – ' + STUFEN[n].name + ', groß ansehen');
+      flaecheSetzen(n);
       return k;
+    }
+    // Texte zum Siegel: Stufe und nächstes Ziel („Silber ab 7.500 RSI protect® Points – noch 1.234“)
+    function siegelTexte(n, stufeEl, zielEl) {
+      stufeEl.textContent = 'Meister/in der ' + titel + '\u00A0– ';
+      stufeEl.append(el('b', STUFEN[n].name));
+      const nx = STUFEN[n + 1];
+      zielEl.classList.toggle('oben', !nx);
+      zielEl.textContent = nx ? nx.name + ' ab ' + nx.ab.toLocaleString('de-DE') + ' RSI protect® Points\u00A0– noch ' + Math.max(0, nx.ab - gesamtJetzt()).toLocaleString('de-DE') : 'Höchste Stufe erreicht';
+    }
+    const glanz = () => { const g = el('div', null, { className: 'glanzlauf' }); g.append(el('i')); return g; };
+    // Fläche „Dein Siegel“ (nur Hochformat sichtbar, per CSS); folgt dem kleinen Siegel
+    let flaecheStufe = -2;
+    function flaecheSetzen(n) {
+      const f = $('.siegelflaeche');
+      if (!f) return;
+      f.hidden = n < 0;
+      if (n < 0) { flaecheStufe = -1; return; }
+      if (flaecheStufe !== n) { const g = f.querySelector('.gross'); g.innerHTML = siegelSVG(STUFEN[n].id); g.append(glanz()); flaecheStufe = n; }
+      siegelTexte(n, f.querySelector('.stufe'), f.querySelector('.ziel'));
+    }
+    // Siegel groß über der abgedunkelten Seite (Tippen aufs kleine Siegel); Tippen oder Esc schließt
+    function siegelOeffnen(n) {
+      if ($('#siegelGross')) return;
+      const box = el('div', null, { id: 'siegelGross' });
+      box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', 'Dein Siegel'); box.tabIndex = -1;
+      const g = el('div', null, { className: 'gross' }); g.innerHTML = siegelSVG(STUFEN[n].id); g.append(glanz());
+      const st = el('p', null, { className: 'stufe' }), zi = el('p', null, { className: 'ziel' });
+      siegelTexte(n, st, zi);
+      box.append(g, st, zi, el('p', 'Tippen zum Schließen', { className: 'tipp' }));
+      document.body.append(box); box.focus();
+      const zu = () => { removeEventListener('keydown', taste); box.remove(); const k = $('.best .siegel'); if (k) k.focus(); };
+      const taste = e => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); zu(); } };
+      box.addEventListener('click', zu); setTimeout(() => addEventListener('keydown', taste), 0);
     }
     // angezeigt wird die erreichte Stufe; steht eine Feier noch aus, bis dahin die zuletzt gefeierte
     function siegelStand() {
@@ -776,6 +855,10 @@
       const ani = (e, kf, opt) => { if (!e || !e.animate) return null; const a = e.animate(kf, Object.assign({ fill: 'both' }, opt)); anis.push(a); return a; };
       const neu = (klasse, x, y, w, h) => { const e = el('div', null, { className: klasse }); Object.assign(e.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' }); buehne.append(e); return e; };
       let tonGespielt = false, fertig = false, gestempelt = false;
+      // „Tippen zum Fortfahren“ unten, dezent (MZ, 24.10.2026: Siegel länger zeigen)
+      const tipp = el('div', 'Tippen zum Fortfahren');
+      tipp.style.cssText = 'position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom));text-align:center;color:#fff;font-size:15px;font-weight:600;letter-spacing:.3px;opacity:0;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none';
+      buehne.append(tipp);
       const ton = ab => { if (!tonGespielt) tonGespielt = tonSpielen(ab); };
       function landen(sanft) {   // kleines Siegel erscheint an seinem Platz
         const k = kleinSetzen(n);
@@ -814,15 +897,17 @@
         ani(dunkel, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
         ani(gross, [{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: 'ease-out' });
         spaeter(200, () => { gestempelt = true; ton(0); });
-        spaeter(2000, () => {
+        ani(tipp, [{ opacity: 0 }, { opacity: 0.85 }], { duration: 400, delay: 1500, easing: 'ease-out' });
+        spaeter(4000, () => {
+          ani(tipp, [{ opacity: 0.85 }, { opacity: 0 }], { duration: 300, easing: 'ease-out' });
           ani(dunkel, [{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-out' });
           ani(gross, [{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-out' });
           landen(false);
         });
-        spaeter(2400, abschluss);
+        spaeter(4400, abschluss);   // Siegel ca. 4s sichtbar (vorher 1,6s)
         return;
       }
-      const T = { blitz: 0, stecker: 650, lotus: 1300, marke: 2050, dunkel: 2450, stempel: 2500, aufprall: 2850, flug: 3550, flugDauer: 650 };
+      const T = { blitz: 0, stecker: 650, lotus: 1300, marke: 2050, dunkel: 2450, stempel: 2500, aufprall: 2850, flug: 7850, flugDauer: 650 };   // Siegel steht 5s (MZ, 24.10.2026; vorher bis 3,55s)
       const mitte = e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, d: r.width }; };
       // Kreis leuchtet auf: heller Lichtring am weißen Rand + Icon hell
       function aufleuchten(ic, verz) {
@@ -898,6 +983,11 @@
           ani(st, [{ opacity: 1, transform: 'translate(0,0) scale(1)' }, { opacity: 0, transform: `translate(${(Math.cos(w) * (r1 - r0)).toFixed(1)}px,${(Math.sin(w) * (r1 - r0)).toFixed(1)}px) scale(.4)` }], { duration: 520 + Math.random() * 200, delay: T.aufprall, easing: 'ease-out', fill: 'forwards' });
         }
         ani(glanzI, [{ opacity: 0.9, transform: 'translateX(-120%) skewX(-18deg)' }, { opacity: 0.9, transform: 'translateX(330%) skewX(-18deg)' }], { duration: 600, delay: T.aufprall + 250, easing: 'cubic-bezier(.3,.1,.5,1)', fill: 'none' });
+        // während das Siegel steht: ruhiges Schimmern (langsamer Glanz alle ca. 1,7s, sanftes Atmen des Lichts), Hinweis unten
+        for (let k = 1; k <= 2; k++) ani(glanzI, [{ opacity: 0.55, transform: 'translateX(-120%) skewX(-18deg)' }, { opacity: 0.55, transform: 'translateX(330%) skewX(-18deg)' }], { duration: 1100, delay: T.aufprall + 250 + k * 1700, easing: 'ease-in-out', fill: 'none' });
+        ani(gross, [{ filter: 'drop-shadow(0 10px 22px rgba(0,0,0,.45)) brightness(1)' }, { filter: 'drop-shadow(0 10px 26px rgba(255,213,0,.55)) brightness(1.05)', offset: 0.5 }, { filter: 'drop-shadow(0 10px 22px rgba(0,0,0,.45)) brightness(1)' }],
+          { duration: 2400, delay: T.aufprall + 600, iterations: 2, easing: 'ease-in-out', fill: 'none' });
+        ani(tipp, [{ opacity: 0 }, { opacity: 0.85 }], { duration: 500, delay: T.aufprall + 1500, easing: 'ease-out' });
       }
       // 6 Siegel fliegt verkleinert an seinen Platz neben den Punkten, Abdunklung geht zurück
       spaeter(T.flug, () => {
@@ -912,6 +1002,7 @@
             { duration: T.flugDauer, easing: 'cubic-bezier(.45,0,.25,1)' });
         }
         ani(dunkel, [{ opacity: 1 }, { opacity: 0 }], { duration: T.flugDauer, easing: 'ease-in-out' });
+        ani(tipp, [{ opacity: 0.85 }, { opacity: 0 }], { duration: 250, easing: 'ease-out' });
       });
       spaeter(T.flug + T.flugDauer, () => { const k = $('.best .siegel'); if (k) k.style.opacity = ''; landen(true); });
       spaeter(T.flug + T.flugDauer + 30, abschluss);

@@ -12,6 +12,11 @@
   @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 600; font-display: swap; src: url('schrift/titillium-web-600.woff2') format('woff2'); }
   @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 700; font-display: swap; src: url('schrift/titillium-web-700.woff2') format('woff2'); }
   @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 900; font-display: swap; src: url('schrift/titillium-web-900.woff2') format('woff2'); }
+  /* Hochformat (MZ, 24.10.2026): Figur im Startbild rechts wie im Spiel, Blick nach links zur Mitte (der Rahmen spiegelt
+     nach der Lage); Auftritt kommt dann von rechts. Querformat unverändert. */
+  @media (orientation: portrait), (max-width: 499px) {
+    .stil-protokoll #startSchirm .figur { left: auto; right: 2px; --seite: 1; }
+  }
 </style>
 <link rel="preload" as="font" type="font/woff2" href="schrift/titillium-web-700.woff2" crossorigin>
 <!-- Hintergrund des Start- und Spielbilds früh laden -->

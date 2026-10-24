@@ -306,7 +306,8 @@
     if (!gebNacht[S.geb] || !bilder.verteiler) return false;
     return S.raeume.every(r => bilder['raum-' + RAEUME[r.typ].id] && r.geraete.every(d => bilder[schluessel(d)]));
   }
-  const VORLAUF = { funk: 0.75, aus: 1.0, flackern: 0.35, fiSchritt: 0.12 };
+  // MZ 24.10.2026 („zu leicht“): keine helle Phase mehr – Funke und Flackern sofort, dann dunkel; Uhr startet, wenn es dunkel ist
+  const VORLAUF = { funk: 0, aus: 0.02, flackern: 0.42, fiSchritt: 0.06 };
   // Vorlauf eines Ausfalls: Funke am Gerät, dann Licht aus (Schalter fliegt), dann Start der Uhr
   function vorlaufSchritt(A, dt) {
     A.vor += dt;

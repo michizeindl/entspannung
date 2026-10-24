@@ -30,6 +30,8 @@
   const KUGEL_R = 300;          // Radius der Blitzkugel (Kugel deutlich größer als die Gebäude)
   const STANGE_H = 40;          // feste Höhe einer Fangstange über dem Dach
   const TOL = 0.3, LUECKE_ABSTAND = 40, LUECKE_LAENGE = 150, RASTER = 2, FANG = 20;
+  const ZOOM_HOCH = 0.85;   // Hochformat-Maßstab. Fangweite bleibt FANG Welt-Pixel (gehört zur Mindestlösung, sonst wären
+                            // einzelne Lösungsplätze nahe an Ecken nicht mehr erreichbar)
   const PUNKTE_MAX = 200, ABZUG_STANGE = 25, ABZUG_LUECKE = 60;
   const ROLL_DAUER = 3.6;
   // Countdown je Gebäude (MZ, 23.10.2026): 30s zum Setzen, ab „Gebäude steht“ bis „Kugel rollen“. Bis 20s volle Punkte,
@@ -105,6 +107,8 @@
     POOL.splice(i, 1);
   }
   POOL.forEach(vorbereiten);
+  // kleinster Abstand zweier Rastpunkte je Gebäude (Welt-Pixel), für die Zoom-Grenze im Hochformat
+  POOL.forEach(g => { let m = Infinity; g.rast.forEach((a, i) => g.rast.forEach((b, j) => { if (j > i) m = Math.min(m, Math.hypot(a[0] - b[0], a[1] - b[1])); })); g.rastMin = m; });
   const ANZAHL = Math.min(5, POOL.length);   // Gebäude je Spiel
   // Auswahl für ein Spiel: nie doppelt; bei „Nochmal“ möglichst andere als zuletzt (gemerkt in mg:blitzkugel:zuletzt);
   // zuerst ein Einstiegs-Gebäude (Stufe 0, genau 2 Stangen), mindestens ein leichtes und ein schweres; Reihenfolge nach Stufe (leicht zuerst, das schwierigste zuletzt), innerhalb der Stufe
@@ -250,6 +254,10 @@
     const kBreite = breit * (L.hoch ? 0.95 : 0.86) / geb.breite;
     // höchstens 1,25-fache Bildauflösung (mass = Welt-Pixel je Bildpixel; kleine Bauten liegen in voller Auflösung vor → größer)
     let k = Math.min(kBreite, (L.gy - oben) / (geb.hoehe + STANGE_H + 6), 1.25 / (geb.mass || 1));
+    // Hochformat: 15 % kleiner – Gebäude mit Luft, rollende Kugel samt Bogen gut im Bild (MZ, 24.10.2026)
+    // … aber nur so weit, dass benachbarte Rastpunkte am Bildschirm mindestens 6 px auseinander bleiben (sonst wären z. B. die
+    // Turmecken des Rathauses kaum noch einzeln antippbar)
+    if (L.hoch) k = Math.max(k * ZOOM_HOCH, Math.min(k, 6 / (geb.rastMin || 1e9)));
     // Sehr hohe Gebäude im flachen Querformat (Hochhaus, Rathausturm): Dach muss genau antippbar bleiben – dann mindestens
     // Maßstab 0,5; das Gebäude reicht unten aus dem Bild (Boden des Gebäudes unter dem Bildrand), die Kugel rollt trotzdem richtig
     S.boden = L.gy;
