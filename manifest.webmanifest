@@ -2,7 +2,7 @@
   "name": "entSPANNUNG",
   "short_name": "entSPANNUNG",
   "lang": "de",
-  "id": "./",
+  "id": "entspannung",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
