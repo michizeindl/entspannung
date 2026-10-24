@@ -627,6 +627,11 @@ canvas#feld { position: fixed; inset: 0; width: 100%; height: 100%; display: blo
   .stil-protokoll .knoepfe { gap: 8px; }
   .stil-protokoll .knoepfe .knopf { padding: 10px 14px; }
 }
+/* Schmale Handys hochkant (≤ 360 px, z. B. 320 px): Knöpfe nicht ganz am unteren Rand – unter den Knöpfen ein Teil des freien
+   Platzes (nur Prüfprotokoll-Stil, entSPANNUNG; Spielertest 24.10.2026) */
+@media (orientation: portrait) and (max-width: 360px) and (min-height: 600px) {
+  .stil-protokoll .schirm { grid-template: "logo" auto "blatt" auto "figur" minmax(0, 1fr) "knoepfe" auto "." minmax(0, 0.45fr) / 100%; }
+}
 /* Hohe Bildschirme hochkant: etwas mehr Luft */
 @media (orientation: portrait) and (min-height: 780px) {
   .stil-protokoll .blatt { margin-top: 34px; }

@@ -215,6 +215,11 @@
   // Querformat – Figur groß unten links (wie Fangstange quer, ganz sichtbar), Gebäude in der Fläche rechts davon,
   //   Knopf mittig darunter, Ergebnis-Zettel links neben dem Knopf, rechts von der Figur.
   const FIGUR_BREITE = 0.58;   // breiteste Pose (jubel) im Verhältnis zur Höhe – Platz für die Figur
+  let sonde = null;
+  function sicherUnten() {
+    if (!sonde) { sonde = document.createElement('div'); sonde.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom)'; document.body.appendChild(sonde); }
+    return parseFloat(getComputedStyle(sonde).paddingBottom) || 0;
+  }
   function lage() {
     const hoch = H > B;
     const streifen = hoch ? Math.max(150, Math.round(H * 0.2)) : Math.round(H * 0.2);
@@ -230,7 +235,8 @@
       knopf = { x, y: H - knopfH - Math.max(10, (streifen - knopfH - 92) / 2), w, h: knopfH };
     } else {
       const links = figR + 12, w = Math.min(240, (B - links) * 0.5);
-      knopf = { x: links + (B - links - w) / 2, y: gy + (streifen - knopfH) / 2, w, h: knopfH };
+      // Abstand zum unteren Rand mindestens 24 px plus Geräte-Aussparung (Home-Leiste), Spielertest 24.10.2026
+      knopf = { x: links + (B - links - w) / 2, y: Math.min(gy + (streifen - knopfH) / 2, H - knopfH - 24 - sicherUnten()), w, h: knopfH };
     }
     L = { gy, s, bx, by, hoch, streifen, kurz: Math.min(B, H), figurH, figR, knopf, bauLinks: hoch ? 8 : figR + 12 };
     if (S) ansicht();
@@ -448,6 +454,13 @@
         pts.forEach(p => g.lineTo(p[0], p[1])); if (pts.length === 1) g.lineTo(pts[0][0] + 0.1, pts[0][1]); g.stroke();
       });
       g.restore();
+      // nach dem Rollen: kleine rote Markierung bleibt bis „Weiter“ (Spielertest 24.10.2026)
+      if (S.phase === 'ergebnis') {
+        const [mx, my] = bild(l.x, l.y), pu = ruhig() ? 0.5 : 0.5 + 0.5 * Math.sin(S.zeit * 2 * Math.PI / 1.2), rr = 9 + 3 * pu;
+        g.save(); g.shadowColor = 'rgba(255,60,40,.8)'; g.shadowBlur = 8;
+        g.strokeStyle = '#ff4a35'; g.lineWidth = 2.5; g.beginPath(); g.arc(mx, my, rr, 0, Math.PI * 2); g.stroke();
+        g.fillStyle = '#ff4a35'; g.beginPath(); g.arc(mx, my, 3.5, 0, Math.PI * 2); g.fill(); g.restore();
+      }
     });
     // Mindestlösung (Testhilfe #loesung): Umrisse
     if (TEST.loesung && S.phase === 'setzen') gb.loesung.forEach(([x, y]) => {

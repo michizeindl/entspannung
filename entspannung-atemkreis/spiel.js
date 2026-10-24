@@ -80,7 +80,7 @@
   };
   Object.keys(POSEN).forEach(n => lade(n, POSEN[n].bild));
   // Teich (1536×1024): Horizont/Wasserlinie y 300, Wasser bis unten; Felsen rechts vorn (Sitzplatz Avatar)
-  const TEICH = { horizont: 300, felsen: [[860, 1024], [890, 800], [1000, 755], [1110, 728], [1200, 710], [1536, 700], [1536, 1024]], sitz: [1290, 772] };
+  const TEICH = { horizont: 300, felsen: [[860, 1024], [890, 800], [1000, 755], [1110, 728], [1200, 710], [1536, 700], [1536, 1024]], sitz: [1290, 772], sitzQuer: [1215, 745] };
   const imPoly = (p, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi) c = !c; } return c; };
 
   // ---------- Lage ----------
@@ -99,7 +99,8 @@
       s = Math.min(Math.max(B / 1536, H / 1024), (0.62 * H - 10) / (772 - 235));
       s = Math.max(s, H / 1024 * 1.05);
       ox = Math.min(0, B - 1536 * s) + Math.max(0, B - 1536 * s);   // rechts bündig
-      oy = Math.min(0.38 * H - 235 * s, H - 10 - 772 * s);
+      // Sitzplatz mit sichtbarem Fels darunter (ca. 55 px), nicht ganz am Rand (MZ, 24.10.2026)
+      oy = Math.min(0.38 * H - 235 * s, H - 55 - TEICH.sitzQuer[1] * s);
     }
     const oben = 56;
     const R = Math.max(60, Math.min(B * (hoch ? 0.36 : 0.26), (H - oben) * (hoch ? 0.24 : 0.32)));
@@ -183,7 +184,7 @@
       S.finaleT += dt * TEMPO;
       if (S.finaleT >= 2.2 && !S.endeGerufen) { S.endeGerufen = true; S.phase = 'ende'; endbild(); }
     }
-    S.popups.forEach(p => { p.t += dt; }); S.popups = S.popups.filter(p => p.t < 1.8);
+    S.popups.forEach(p => { p.t += dt; }); S.popups = S.popups.filter(p => p.t < (p.dauer || 1.8));
     S.lotus.forEach(lo => { if (lo.offen >= 0) lo.offen += dt; });
     const zielStern = S.phase === 'finale' || S.phase === 'ende' ? 1 : (S.idx) / (S.plan.length);
     S.stern += (zielStern - S.stern) * Math.min(1, dt * 0.3);
@@ -197,14 +198,17 @@
     b.w = w;
     // kurze Rückmeldung je Atemzug (MZ, 24.10.2026)
     const grund = w.keine ? 'Nicht mitgedrückt' : w.imTakt ? (w.extra || w.halteLos ? 'Ruhiger halten' : 'Im Takt')
-      : Math.abs(w.dH) >= Math.abs(w.dL) ? (w.dH > 0 ? 'Früher einatmen' : 'Später einatmen') : (w.dL > 0 ? 'Früher loslassen' : 'Später loslassen');
-    if (b.probe) { S.popups.push({ text: w.imTakt ? 'Gut so' : 'Probe', t: 0, probe: true, grund: w.imTakt ? null : grund }); return; }
+      : Math.abs(w.dH) >= Math.abs(w.dL) ? (w.dH > 0 ? 'Früher drücken' : 'Später drücken') : (w.dL > 0 ? 'Früher loslassen' : 'Später loslassen');
+    // Rückmeldung bis kurz vor dem nächsten Einatmen stehen lassen, mindestens 3s (MZ, 24.10.2026)
+    const naechst = S.plan[S.idx + 1], dauer = Math.max(3, naechst ? (naechst.t0 - S.zeit) / TEMPO - 0.3 : 3);
+    if (b.probe) { S.popups.push({ text: w.imTakt ? 'Gut so' : 'Probe', t: 0, probe: true, grund: w.imTakt ? null : grund, dauer }); return; }
     S.ergebnisse.push(Object.assign({ nr: b.nr }, w));
     S.punkte += w.punkte;
-    S.popups.push({ text: '+' + w.punkte, t: 0, grund });
+    const pop = { text: '+' + w.punkte, t: 0, grund, dauer };
+    S.popups.push(pop);
     if (w.punkte >= GUT) {
       const lo = S.lotus.find(x => x.offen === -1);   // -1 = Knospe, -10 = schon offen (Testhilfe)
-      if (lo) { lo.offen = 0; R_.ton('gelungen'); }
+      if (lo) { lo.offen = 0; R_.ton('gelungen'); if (!S.lotusTipp) { S.lotusTipp = true; pop.tipp = 'Gute Atemzüge öffnen Lotusblüten'; } }
     }
     if (w.ruhe >= 15) S.unruhe = Math.max(0, S.unruhe - 0.1);
     if (w.punkte >= 95) figur('freude', 1.2); else if (w.punkte < 40) figur('zucken', 1.2);
@@ -506,11 +510,11 @@
   function popups(g) {
     const r = L.ring;
     S.popups.forEach(p => {
-      const e = Math.min(1, p.t / 0.35), a = p.t < 1.2 ? e : Math.max(0, 1 - (p.t - 1.2) / 0.5);
+      const d = p.dauer || 1.8, e = Math.min(1, p.t / 0.35), a = p.t < d - 0.6 ? e : Math.max(0, (d - p.t) / 0.6);   // sanft ausblenden
       g.save(); g.globalAlpha = a;
       g.font = `700 ${p.probe ? 18 : 22}px "Titillium Web", "Segoe UI", system-ui, sans-serif`;
       const w = g.measureText(p.text).width + 26, hh = 34;
-      g.translate(r.x, r.y - p.t * 12); g.scale(0.85 + 0.15 * e, 0.85 + 0.15 * e);
+      g.translate(r.x, r.y - Math.min(p.t, 1.2) * 12); g.scale(0.85 + 0.15 * e, 0.85 + 0.15 * e);
       g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 10; g.shadowOffsetY = 3;
       g.fillStyle = '#fff'; rund(g, -w / 2, -hh / 2, w, hh, hh / 2); g.fill();
       g.shadowColor = 'transparent';
@@ -522,6 +526,12 @@
         g.fillStyle = 'rgba(20,24,48,.6)'; rund(g, -gw / 2, hh / 2 + 6, gw, 24, 12); g.fill();
         g.fillStyle = '#fff'; g.fillText(p.grund, 0, hh / 2 + 18.5);
       }
+      if (p.tipp) {   // einmaliger Satz bei der ersten geöffneten Blüte
+        g.font = '600 14px "Titillium Web", "Segoe UI", system-ui, sans-serif';
+        const tw = g.measureText(p.tipp).width + 20;
+        g.fillStyle = 'rgba(255,255,255,.88)'; rund(g, -tw / 2, hh / 2 + 34, tw, 24, 12); g.fill();
+        g.fillStyle = '#191919'; g.fillText(p.tipp, 0, hh / 2 + 46.5);
+      }
       g.restore();
     });
   }
@@ -530,7 +540,7 @@
     if (zustand !== 'spiel') return;
     const f = S.figur, pose = aktuellePose(), vor = f.vorher || 'meditation';
     const ueber = Math.min(1, (S.zeit - f.seit) / (0.2 * TEMPO)), zurueck = S.zeit < f.bis ? 1 : Math.min(1, (S.zeit - f.bis) / (0.2 * TEMPO));
-    const [bx, by] = schirm(...TEICH.sitz);
+    const [bx, by] = schirm(...(L.hoch ? TEICH.sitz : TEICH.sitzQuer));
     const sitzH = Math.max(92, Math.min(L.hoch ? 150 : 170, L.kurz * (L.hoch ? 0.24 : 0.3)));
     const zeichnePose = (name, alpha) => {
       const img = bilder[name];

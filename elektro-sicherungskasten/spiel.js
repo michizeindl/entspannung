@@ -809,6 +809,17 @@
       rg.addColorStop(0, `rgba(4,8,22,${0.5 * dunkel})`); rg.addColorStop(1, `rgba(3,6,18,${0.82 * dunkel})`);
       g.fillStyle = rg; g.fillRect(a.x, a.y, a.w, a.h);
     }
+    // defektes Gerät im Dunkeln: dauerhaft schwaches, ruhiges Glimmen (Warnschimmer), zusätzlich zu den Funken (MZ, 24.10.2026)
+    const A = S.A;
+    if (A && A.laeuft && S.phase === 'ausfall' && dunkel > 0.5) A.verursacher.forEach(v => {
+      if (v.ri !== ri || !v.d.steckt) return;
+      const m = geraetAbb(ri, v.d, a), o = GERAETE[v.d.gi].maengel[v.d.mangel != null ? v.d.mangel : 0].ort;
+      const gx = m.x + o[0] * m.w, gy = m.y + o[1] * m.h, rr = Math.max(14, Math.max(m.w, m.h) * 0.42);
+      const al = (ruh ? 0.32 : 0.3 + 0.07 * Math.sin(t * 2 * Math.PI / 3.2)) * Math.min(1, (dunkel - 0.5) * 2);
+      const gl = g.createRadialGradient(gx, gy, 0, gx, gy, rr);
+      gl.addColorStop(0, `rgba(255,150,60,${al})`); gl.addColorStop(0.45, `rgba(255,110,40,${al * 0.45})`); gl.addColorStop(1, 'rgba(255,90,30,0)');
+      g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gl; g.fillRect(gx - rr, gy - rr, 2 * rr, 2 * rr); g.restore();
+    });
     g.restore();
   }
   function geraetZeichnen(g, ri, d, a, t, ruh) {
@@ -863,12 +874,12 @@
     const p = platzRect(ri);
     const [x, y] = zuSchirm(p[0], p[1]), [x2] = zuSchirm(p[0] + p[2], p[1]);
     const w = x2 - x;
-    const fs = klemm(w * 0.065, 9, 15);
-    const name = RAEUME[r.typ].name;
-    g.font = '600 ' + fs.toFixed(1) + 'px ' + SCHRIFT;
-    const tw = g.measureText(name).width;
-    // Raum im Blick: Name bleibt sichtbar, auch wenn der Raum seitlich beschnitten ist
+    // Raum im Blick: Name groß und bleibt sichtbar, auch wenn der Raum seitlich beschnitten ist (MZ, 24.10.2026)
     const fest = ri === S.fokus;
+    const fs = fest ? klemm(w * 0.075, 14, 22) : klemm(w * 0.065, 9, 15);
+    const name = RAEUME[r.typ].name;
+    g.font = (fest ? '700 ' : '600 ') + fs.toFixed(1) + 'px ' + SCHRIFT;
+    const tw = g.measureText(name).width;
     const bx = (fest ? Math.max(x, L.stage.x) : x) + fs * 0.5, by = (fest ? Math.max(y, L.stage.y) : y) + fs * 0.45;
     // andere Räume: Name nur, wenn er ganz im Bild liegt (sonst halbe Schilder am Rand bzw. Überlappung mit dem festen Namen)
     if (!fest && (bx < L.stage.x + 2 || by < L.stage.y + 2 || bx + tw + fs * 0.9 > L.stage.x + L.stage.w - 2)) return;
@@ -1141,7 +1152,7 @@
     texte: {
       titel: 'Sicherungskasten',
       untertitel: 'Bringst du den Strom schnell zurück?',
-      anleitung: 'Fliegt eine Sicherung, wird ein Raum dunkel. Tippe zuerst das defekte Gerät im Raum an, dann den passenden Schalter im Verteiler. Wer zu früh einschaltet, löst die Sicherung gleich wieder aus. Drei Ausfälle zu lang? Ende!',   // MZ, 23.10.2026 (Ausrufezeichen gewollt)
+      anleitung: 'Fliegt eine Sicherung, wird ein Raum dunkel. Tippe zuerst das defekte Gerät im Raum an, dann den passenden Schalter im Verteiler. Wer zu früh einschaltet, löst die Sicherung gleich wieder aus. Jeder behobene Ausfall zählt – je schneller, desto mehr Punkte. Drei Ausfälle zu lang? Ende!',   // MZ, 23.10.2026 (Ausrufezeichen gewollt)
     },
     // Klänge (Sound Artist, 23.10.2026; Sonniss GDC 2026, Blitz mit Pixabay DRAGON-STUDIO): Einzelklänge in der
     // Pegel-Abstufung der Lieferung (lautester auf Spitze 0,89), Gewitter-Schleife normalisiert und leise gemischt

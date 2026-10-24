@@ -574,6 +574,9 @@
       const f = DAECHER.find(d => d.nr === TEST.dach);
       if (f) wahl = [f, ...wahl.filter(d => d !== f)].slice(0, ANZAHL);
     }
+    // Dach 3 (Plattenweg mittig) nie als letztes Dach: dort passen im Hochformat nicht immer 5 Mängel (Probe 24.10.2026)
+    const i3 = wahl.findIndex(d => d.nr === 3);
+    if (i3 === wahl.length - 1 && wahl.length > 2) [wahl[i3], wahl[i3 - 2]] = [wahl[i3 - 2], wahl[i3]];
     if (R_.zustand === 'spiel') try { localStorage.setItem('mg:dachcheck:zuletzt', JSON.stringify(wahl.map(d => d.nr))); } catch (e) { /* privat */ }
     return wahl;
   }
