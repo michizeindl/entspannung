@@ -71,6 +71,23 @@
   lade('teich', 'bilder/teich.webp');
   lade('mond', 'bilder/mond.webp');
   [1, 2, 3].forEach(n => { lade('lotus' + n, 'bilder/lotus-' + n + '.webp'); lade('blatt' + n, 'bilder/blatt-' + n + '.webp'); });
+  // Seerosen im Dämmerlicht (MZ, 24.10.2026: realistischer): Blätter und Blüten einmal getönt (Multiplizieren mit einer
+  // kühlen, dunkleren Farbe = dunkler, kühler, weniger gesättigt), Blätter passend zu den gemalten Blättern im Teichbild
+  const TOENUNG = { blatt: '#5aa8f0', knospe: '#9a9ac6', bluete: '#bdb7dc' };
+  const getoent = {};
+  function toenen(name, farbe) {
+    const key = name + farbe;
+    if (getoent[key] !== undefined) return getoent[key];
+    const img = bilder[name];
+    if (!img) return null;
+    const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const x = c.getContext('2d');
+    x.drawImage(img, 0, 0);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = farbe; x.fillRect(0, 0, c.width, c.height);
+    x.globalCompositeOperation = 'destination-in'; x.drawImage(img, 0, 0);
+    getoent[key] = c;
+    return c;
+  }
   // Avatar c (Atemkreis): Blick der Pose im Bild; Spiel und Rahmen richten die Figur zur Bildmitte aus
   const POSEN = {
     meditation: { bild: 'bilder/avatar-meditation.webp', blick: 'frontal', hoehe: 0.558 },
@@ -112,28 +129,68 @@
   const schirm = (ix, iy) => [L.ox + ix * L.s, L.oy + iy * L.s];
   const imBild = (sx, sy) => [(sx - L.ox) / L.s, (sy - L.oy) / L.s];
 
-  // 10 Plätze für Lotusblüten auf dem sichtbaren Wasser (nicht am Felsen, nicht unter dem Ring, mit Abstand), vorn größer
+  // 10 Plätze für Lotusblüten (MZ, 24.10.2026: realistischer): in Gruppen zum Ufer hin – bei den gemalten Blättern links,
+  // am Schilf rechts, am Felsen und am fernen Ufer –, nie vor dem Ring (Ring, Spiegelbild und Text darunter frei), nicht am
+  // Felsen und nicht am Avatar. Größe und Abstand nach Tiefe (hinten kleiner). Im gespiegelten Teil (quer, links) gilt |x|.
+  const UFER = [   // [x, y, Gewicht] im Teichbild
+    [160, 640, 1], [240, 700, 1], [330, 790, 1], [220, 880, 1], [360, 940, 0.9], [170, 580, 0.8],
+    [1090, 560, 1], [1220, 600, 1], [1340, 640, 0.9], [960, 600, 0.6],
+    [900, 830, 0.8], [990, 770, 0.8], [840, 930, 0.7],
+    [250, 500, 0.45], [520, 480, 0.4], [800, 480, 0.4], [1100, 500, 0.45], [1380, 520, 0.45],
+  ];
+  const SCHILF = [[[0, 520], [90, 520], [125, 700], [80, 1024], [0, 1024]], [[1430, 500], [1536, 500], [1536, 720], [1430, 720]]];
+  const tiefe = iy => Math.max(0.16, Math.min(1.2, (iy - 405) / 495));   // 0 am Horizont, 1 bei Bild-y 900
+  const lotusK = iy => L.s * 1.05 * tiefe(iy);                             // Maßstab der Blatt-/Blütenbilder
+  const blattB = iy => lotusK(iy) * 0.62 * 188;                           // Blattbreite auf dem Schirm
   function lotusPlaetze() {
-    const kand = [], r = L.ring;
-    for (let sy = H * 0.5; sy < H - 20; sy += 14) for (let sx = 24; sx < B - 24; sx += 14) {
-      const [ix, iy] = imBild(sx, sy);
-      if (iy < 520 || iy > 1000 || imPoly([ix, iy], TEICH.felsen)) continue;
-      if (Math.hypot((sx - r.x) / 1.1, sy - r.y) < r.R * 1.15) continue;
-      if (Math.abs(sx - r.x) < 110 && sy > r.y + r.R && sy < r.y + r.R + 90) continue;   // Platz für „Einatmen…“ usw.
-      const av = schirm(...TEICH.sitz);
-      if (Math.abs(sx - av[0]) < L.kurz * 0.16 && sy > av[1] - L.kurz * 0.3) continue;
-      kand.push([sx, sy, ix, iy]);
+    const kand = [], r = L.ring, av = schirm(...(L.hoch ? TEICH.sitz : TEICH.sitzQuer));
+    const wy = Math.max(r.y + r.R * 1.05, L.oy + 360 * L.s), spiegelY = wy + (wy - r.y) * 0.25;
+    for (let sy = H * 0.45; sy < H - 8; sy += 9) for (let sx = 10; sx < B - 10; sx += 9) {
+      let [ix, iy] = imBild(sx, sy);
+      ix = Math.abs(ix);
+      if (iy < 450 || iy > 990 || imPoly([ix, iy], TEICH.felsen) || SCHILF.some(f => imPoly([ix, iy], f))) continue;
+      const bw = blattB(iy);
+      if (sx < bw * 0.55 + 4 || sx > B - bw * 0.55 - 4 || sy > H - bw * 0.2 - 6) continue;   // ganz im Bild
+      if (Math.hypot((sx - r.x) / 1.1, sy - r.y) < r.R * 1.08 + bw * 0.3) continue;           // nicht im Ring (größter Kreis)
+      if (Math.abs(sx - r.x) < r.R * 0.85 + bw * 0.5 && sy > r.y && sy < spiegelY + r.R * 0.22 + 24) continue;   // vor dem Ring bis zum Spiegelbild
+      if (Math.abs(sx - av[0]) < L.kurz * 0.16 + bw * 0.4 && sy > av[1] - L.kurz * 0.3) continue;   // Avatar
+      if (sx < B * 0.5 && sy > spiegelY) continue;   // vorn links bleibt frei (MZ 24.10.2026: unterste Seerose links nach hinten)
+      let ufer = 0;
+      UFER.forEach(([ux, uy, w]) => { ufer = Math.max(ufer, w * Math.exp(-Math.hypot(ix - ux, (iy - uy) * 1.6) / 140)); });
+      kand.push({ sx, sy, ix: imBild(sx, sy)[0], iy, bw, ufer });
     }
     let zz = S.lotusSaat;
     const zufall = () => { zz = (zz * 9301 + 49297) % 233280; return zz / 233280; };
+    const gewichtet = (liste, f) => {
+      const summe = liste.reduce((s, k) => s + f(k), 0);
+      let z = zufall() * summe;
+      for (const k of liste) { z -= f(k); if (z <= 0) return k; }
+      return liste[liste.length - 1];
+    };
     const plaetze = [];
-    const abstand = L.kurz * 0.13;
-    for (let v = 0; v < 400 && plaetze.length < ATEM && kand.length; v++) {
-      const k = kand[Math.floor(zufall() * kand.length)];
-      if (plaetze.every(p => Math.hypot(p[0] - k[0], p[1] - k[1]) > abstand)) plaetze.push(k);
+    const frei = (k, f = 0.92) => plaetze.every(p => Math.hypot(p.sx - k.sx, (p.sy - k.sy) * 1.9) > Math.max(p.bw, k.bw) * f);
+    const groessen = L.hoch ? [4, 3, 3] : [3, 3, 2, 2];
+    const mitten = [];
+    groessen.forEach(n => {
+      if (!kand.length) return;
+      const ok = kand.filter(k => mitten.every(m => Math.hypot(m.sx - k.sx, m.sy - k.sy) > L.kurz * 0.24) && frei(k));
+      if (!ok.length) return;
+      const m = gewichtet(ok, k => k.ufer * k.ufer + 0.01);
+      mitten.push(m);
+      if (plaetze.length < ATEM) plaetze.push(m);
+      const nah = kand.filter(k => k !== m && Math.hypot(k.sx - m.sx, (k.sy - m.sy) * 1.6) < m.bw * 2.6);
+      for (let v = 0, n0 = 1; v < 200 && n0 < n && nah.length && plaetze.length < ATEM; v++) {
+        const k = nah[Math.floor(zufall() * nah.length)];
+        if (frei(k)) { plaetze.push(k); n0++; }
+      }
+    });
+    // Rest (zu wenig Platz in den Gruppen): weitere Plätze nahe am Ufer
+    for (let v = 0; v < 900 && plaetze.length < ATEM && kand.length; v++) {
+      const k = gewichtet(kand, k => k.ufer * k.ufer + 0.005);
+      if (frei(k, v < 400 ? 0.92 : v < 700 ? 0.75 : 0.6)) plaetze.push(k);
     }
-    plaetze.sort((p, q) => p[1] - q[1]);   // hinten zuerst zeichnen
-    S.lotus.forEach((lo, i) => { const p = plaetze[i % Math.max(1, plaetze.length)]; if (p) { lo.ix = p[2]; lo.iy = p[3]; } });
+    plaetze.sort((p, q) => p.iy - q.iy);   // hinten zuerst zeichnen
+    S.lotus.forEach((lo, i) => { const p = plaetze[i % Math.max(1, plaetze.length)]; if (p) { lo.ix = p.ix; lo.iy = p.iy; } });
   }
 
   // ---------- Zustand ----------
@@ -143,7 +200,8 @@
       ev: [], halten: false, gehaltenSeit: 0, ergebnisse: [], punkte: 0, popups: [], text: null,
       figur: { pose: 'meditation', bis: 0, seit: -9, vorher: 'meditation' }, unruhe: 1, offen: 0, stern: 0,
       lotus: [], lotusSaat: Math.floor(Math.random() * 233280), wuermchen: [], testEnde: !!TEST.ende, finaleT: 0, sterne: [] };
-    for (let i = 0; i < ATEM; i++) S.lotus.push({ ix: 0, iy: 0, offen: -1, blatt: 1 + (i % 3), w: (Math.random() - 0.5) * 0.5 });
+    for (let i = 0; i < ATEM; i++) S.lotus.push({ ix: 0, iy: 0, offen: -1, blatt: 1 + (i % 3), w: (Math.random() - 0.5) * 0.5,
+      ph: Math.random() * 6.28, fr: 0.45 + Math.random() * 0.4, welle: Math.random() * 5 });
     // Testhilfe #atem=N: frühere Atemzüge gut
     if (R_.zustand === 'spiel' && TEST.atem > 1) for (let n = 0; n < Math.min(ATEM, TEST.atem) - 1; n++) {
       S.ergebnisse.push({ nr: n, punkte: 95, imTakt: true }); S.punkte += 95; S.lotus[n].offen = -10; S.unruhe -= 0.1;
@@ -466,24 +524,67 @@
     g.fillStyle = '#191919'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, r.x, y + hh / 2 + 1);
     g.restore();
   }
-  // Lotus: zu Beginn Knospen auf Blättern; je gutem Atemzug öffnet sich eine (Knospe → halb → offen in 2,4s)
+  // Lotus: zu Beginn Knospen auf Blättern; je gutem Atemzug öffnet sich eine (Knospe → halb → offen in 2,4s).
+  // Eingebettet ins Dämmerlicht (MZ, 24.10.2026): Perspektive nach Tiefe (hinten kleiner, Blatt flacher), getönte Farben,
+  // weicher Kontaktschatten, Lichtkante als Wasserlinie, feiner Wellenring, zartes Spiegelbild der Blüte, jede schaukelt für
+  // sich; offene Blüten mit leichtem Schimmer. Bei „Bewegung reduzieren“ steht alles still.
   function lotusZeichnen(g, t, ruh) {
     S.lotus.forEach((lo, i) => {
       if (!lo.ix) return;
-      const [sx, sy] = schirm(lo.ix, lo.iy), k = L.s * 0.72 * (0.45 + 0.75 * (lo.iy - 500) / 500);
-      const bl = bilder['blatt' + lo.blatt];
-      const wipp = ruh ? 0 : Math.sin(t * 0.8 + i) * 1.2 * S.unruhe;
-      if (bl) { g.save(); g.translate(sx, sy + wipp); g.scale(k * 0.62, k * 0.62 * 0.32); g.rotate(lo.w); g.drawImage(bl, -bl.naturalWidth / 2, -bl.naturalHeight / 2); g.restore(); }
+      const [sx, sy] = schirm(lo.ix, lo.iy), d = tiefe(lo.iy), k = lotusK(lo.iy), quetsch = 0.2 + 0.11 * d;
+      const amp = ruh ? 0 : (0.5 + 1.1 * S.unruhe) * Math.min(1, d + 0.2);
+      const wipp = ruh ? 0 : Math.sin(t * lo.fr + lo.ph) * amp, kipp = ruh ? 0 : Math.sin(t * lo.fr * 0.8 + lo.ph + 1.3) * 0.022 * (0.4 + S.unruhe);
+      const bl = toenen('blatt' + lo.blatt, TOENUNG.blatt);
+      const bw = (bl ? bl.width : 188) * k * 0.62, bh = bw * quetsch * ((bl ? bl.height : 169) / (bl ? bl.width : 188));
+      const y = sy + wipp;
+      // Wellenring: zieht langsam nach außen und verblasst (je Seerose eigener Takt)
+      g.save(); g.translate(sx, y); g.scale(1, quetsch * 0.95);
+      const wp = ruh ? 0.35 : ((t * 0.22 + lo.welle) % 1);
+      g.globalAlpha = (ruh ? 0.08 : 0.16 * (1 - wp)) * Math.min(1, d + 0.3);
+      g.strokeStyle = '#cfe0ff'; g.lineWidth = Math.max(0.6, 1.2 * d) / Math.max(0.3, quetsch);
+      g.beginPath(); g.arc(0, 0, bw * (0.55 + 0.35 * wp), 0, Math.PI * 2); g.stroke();
+      g.restore();
+      // Kontaktschatten unter dem Blatt (weich, dunkelblau)
+      g.save(); g.translate(sx, y + bh * 0.12); g.scale(1, quetsch);
+      const sg = g.createRadialGradient(0, 0, bw * 0.2, 0, 0, bw * 0.62);
+      sg.addColorStop(0, 'rgba(3,10,30,.42)'); sg.addColorStop(1, 'rgba(3,10,30,0)');
+      g.fillStyle = sg; g.beginPath(); g.arc(0, 0, bw * 0.62, 0, Math.PI * 2); g.fill();
+      g.restore();
+      // Blatt (flach auf dem Wasser)
+      if (bl) {
+        g.save(); g.translate(sx, y); g.scale(k * 0.62, k * 0.62 * quetsch); g.rotate(lo.w);
+        g.drawImage(bl, -bl.width / 2, -bl.height / 2);
+        g.restore();
+        // Wasserlinie: zarte Lichtkante vorn am Blattrand (Himmel spiegelt sich), hinten leicht ins Wasser getaucht
+        g.save(); g.translate(sx, y); g.scale(1, quetsch);
+        g.globalAlpha = 0.22 * Math.min(1, d + 0.3); g.strokeStyle = '#a9c4ef'; g.lineWidth = Math.max(0.6, d * 1.1) / Math.max(0.3, quetsch);
+        g.beginPath(); g.ellipse(0, 0, bw * 0.47, bw * 0.47, 0, Math.PI * 0.12, Math.PI * 0.88); g.stroke();
+        g.restore();
+      }
       const p = lo.offen <= -10 ? 1 : lo.offen < 0 ? 0 : klemme(lo.offen / 2.4);
       const stufe = [[1, 1 - klemme(p * 2)], [2, p < 0.5 ? klemme(p * 2) : 1 - klemme((p - 0.5) * 2)], [3, klemme((p - 0.5) * 2)]];
       stufe.forEach(([n, a]) => {
-        const img = bilder['lotus' + n];
+        const img = toenen('lotus' + n, n === 3 ? TOENUNG.bluete : TOENUNG.knospe);
         if (!img || a <= 0.01) return;
-        const f = k * (n === 1 ? 0.42 : n === 2 ? 0.48 : 0.62);
-        g.save(); g.globalAlpha = a; g.translate(sx, sy + wipp);
-        if (n === 3 && p > 0.5) { g.shadowColor = 'rgba(255,220,240,.6)'; g.shadowBlur = 16 * (p - 0.5); }
-        g.drawImage(img, -img.naturalWidth * f / 2, -img.naturalHeight * f * 0.92, img.naturalWidth * f, img.naturalHeight * f);
+        const f = k * (n === 1 ? 0.42 : n === 2 ? 0.48 : 0.62), w = img.width * f, h = img.height * f;
+        // Spiegelbild: gestaucht, blass, kühl, unter der Wasserlinie (leicht wabernd)
+        g.save(); g.globalAlpha = a * 0.2; g.translate(sx + (ruh ? 0 : Math.sin(t * 1.3 + lo.ph) * 0.8 * d), y + h * 0.04);
+        g.scale(1, -0.55); g.drawImage(img, -w / 2, -h * 0.92, w, h);
         g.restore();
+        // Blüte
+        g.save(); g.globalAlpha = a; g.translate(sx, y + h * 0.04); g.rotate(kipp);
+        if (n === 3 && p > 0.5) { g.shadowColor = 'rgba(255,226,236,.38)'; g.shadowBlur = 12 * (p - 0.5) * Math.min(1, d + 0.3); }
+        g.drawImage(img, -w / 2, -h * 0.92, w, h);
+        g.restore();
+        // Schimmer der offenen Blüte: zarter warmer Hauch über der Mitte, atmet langsam
+        if (n === 3 && p > 0.5) {
+          const sch = (ruh ? 0.5 : 0.5 + 0.5 * Math.sin(t * 0.9 + lo.ph)) * (p - 0.5) * 2;
+          g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.16 * sch * a;
+          const rg = g.createRadialGradient(sx, y - h * 0.45, 0, sx, y - h * 0.45, w * 0.45);
+          rg.addColorStop(0, 'rgba(255,236,214,1)'); rg.addColorStop(1, 'rgba(255,236,214,0)');
+          g.fillStyle = rg; g.fillRect(sx - w * 0.5, y - h * 0.95, w, h);
+          g.restore();
+        }
       });
     });
   }

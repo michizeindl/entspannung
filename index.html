@@ -150,8 +150,8 @@
   @keyframes siegelGlanz { 0% { opacity: .9; transform: translateX(-120%) skewX(-18deg); } 22%, 100% { opacity: .9; transform: translateX(330%) skewX(-18deg); } }
   @media (orientation: landscape) and (min-width: 560px) { .siegelflaeche { display: none !important; } }
   /* kleines Siegel ist ein Knopf: öffnet das Siegel groß */
-  .best .siegel { cursor: pointer; }
-  .best .siegel:focus-visible { outline: 2px solid var(--blau); outline-offset: 3px; border-radius: 50%; }
+  .siegel.klein { cursor: pointer; }
+  .siegel.klein:focus-visible { outline: 2px solid var(--blau); outline-offset: 3px; border-radius: 50%; }
   #siegelGross { position: fixed; inset: 0; z-index: 45; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
     padding: 20px; color: #fff; background: rgba(25,25,25,.66); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); cursor: pointer;
     animation: einblendenS .3s ease-out both; }
@@ -177,21 +177,23 @@
     display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;
     padding: 6px calc(var(--rand) + env(safe-area-inset-right)) 14px calc(var(--rand) + env(safe-area-inset-left));
   }
-  /* Wortmarke ≈ 9,2em breit; daneben bleibt Platz für die Punkte-Anzeige (ca. 112px, mit Siegel ca. 146px) */
+  /* Wortmarke ≈ 9,2em breit; daneben bleibt Platz für die Punkte-Anzeige (ca. 112px; das Siegel steht hoch nicht mehr hier) */
   .name { justify-content: flex-start; font-size: min(var(--name), calc((100vw - 2 * var(--rand) - 12px - var(--punkte-b, 112px)) / 9.2)); }
-  .kopf:has(.siegel) { --punkte-b: 146px; }
   .best { margin: 0; position: relative; display: flex; flex-direction: column; align-items: center; flex: none;   /* Zahl mittig unter dem Text (MZ 24.10.2026) */
     font-size: var(--best-t); line-height: 1.15; letter-spacing: .3px; white-space: nowrap; }
   .best .dp { display: none; }
   .best b { font-size: var(--best-z); margin-top: 3px; }
-  /* kleines Siegel links neben der Punkte-Anzeige (Zeile bleibt so hoch wie sie ist) */
-  .best .siegel { position: absolute; right: calc(100% + 6px); top: 50%; width: 30px; height: 30px; margin: -15px 0 0; }
+  /* kleines Siegel im Hochformat (MZ, 24.10.2026): links neben dem Ton-Knopf im Logo-Balken, gleich groß und gleich hoch;
+     Siegel + Ton-Knopf stehen als Paar gemeinsam mittig über der Punkte-Anzeige (Versatz --ton-versatz aus dem Skript) */
+  :root { --paar-luecke: 10px; }
+  .logobalken > .siegel.klein { position: absolute; z-index: 1; margin: 0; width: var(--ton); height: var(--ton);
+    top: calc(env(safe-area-inset-top) + (var(--balken-h) - var(--ton)) / 2);
+    right: calc(var(--rand) + env(safe-area-inset-right) + var(--ton-versatz, 0px) + var(--ton) + var(--paar-luecke)); }
   /* Tablet hoch: alles etwas größer */
   @media (orientation: portrait) and (min-width: 600px) {
     :root { --rand: 28px; --balken-h: 72px; --logo-h: 50px; --ton: 36px; --name: 44px; --best-t: 14px; --best-z: 28px; --punkte-b: 150px; }
-    .kopf:has(.siegel) { --punkte-b: 196px; }
+    :root { --paar-luecke: 12px; }
     .kopf { padding-top: 10px; padding-bottom: 18px; }
-    .best .siegel { width: 42px; height: 42px; margin-top: -21px; right: calc(100% + 10px); }
   }
 
   /* Querformat (MZ, 23.10.2026, „passt so“): drei Blöcke nebeneinander, gleich breit und hoch, Inhalt senkrecht mittig */
@@ -289,7 +291,7 @@
   html.intro .logobalken, html.intro .kopf, html.intro .icon, html.intro .block h2, html.intro .spiel, html.intro .summe, html.intro .fuss,
   html.nachIntro .logobalken, html.nachIntro .kopf, html.nachIntro .icon, html.nachIntro .block h2, html.nachIntro .spiel, html.nachIntro .summe, html.nachIntro .fuss { animation: none; }
   html.intro .logo, html.intro .name, html.intro .best, html.intro .icon, html.intro .block h2, html.intro .spiel, html.intro .summe, html.intro .fuss,
-  html.intro .flaeche, html.intro #tonKnopf { opacity: 0; }
+  html.intro .flaeche, html.intro #tonKnopf, html.intro .logobalken > .siegel { opacity: 0; }
   html.nachIntro .spiel.bald { opacity: .42; }
 
   /* ---------- Ruhe-Animationen (MZ, 23.10.2026): nach dem Einblenden bzw. Intro (Klasse „ruhe“), dezent, nie hektisch.
@@ -485,8 +487,12 @@
     // Hochformat: Ton-Knopf mittig über der Punkte-Anzeige (MZ 24.10.2026) – Versatz aus der Breite der Anzeige
     if (!window.__tonMitte) {
       const tonMitte = () => {
-        const b = $('.best'), t = $('#tonKnopf');
-        if (b && t) document.documentElement.style.setProperty('--ton-versatz', Math.max(0, (b.offsetWidth - t.offsetWidth) / 2) + 'px');
+        const b = $('.best'), t = $('#tonKnopf'), s = document.querySelector('.logobalken > .siegel.klein');
+        if (!b || !t) return;
+        // mit Siegel: Paar (Siegel, Lücke, Ton-Knopf) gemeinsam mittig über der Punkte-Anzeige (MZ 24.10.2026)
+        const luecke = s ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--paar-luecke')) || 10 : 0;
+        const paar = t.offsetWidth + (s ? s.offsetWidth + luecke : 0);
+        document.documentElement.style.setProperty('--ton-versatz', Math.max(s ? -8 : 0, (b.offsetWidth - paar) / 2) + 'px');
       };
       window.__tonMitte = tonMitte;
       if (window.ResizeObserver) new ResizeObserver(tonMitte).observe($('.best'));
@@ -758,16 +764,26 @@
     }
     // Kleines Siegel neben den Punkten (n = Stufe 0–2, −1 = keins)
     let kleinStufe = -1;
+    // Platz: quer/PC neben der Punkte-Anzeige (in .best), hoch links neben dem Ton-Knopf im Logo-Balken (MZ 24.10.2026)
+    const QUER = matchMedia('(orientation: landscape) and (min-width: 560px)');
+    const kleinEl = () => document.querySelector('.siegel.klein');
+    function kleinOrt() {
+      const k = kleinEl();
+      if (k) { const ziel = QUER.matches ? $('.best') : $('.logobalken'); if (k.parentNode !== ziel) ziel.append(k); }
+      if (window.__tonMitte) window.__tonMitte();
+    }
+    if (QUER.addEventListener) QUER.addEventListener('change', kleinOrt); else if (QUER.addListener) QUER.addListener(kleinOrt);
     function kleinSetzen(n) {
-      let k = $('.best .siegel');
-      if (n < 0) { if (k) k.remove(); kleinStufe = -1; return null; }
+      let k = kleinEl();
+      if (n < 0) { if (k) { k.remove(); kleinOrt(); } kleinStufe = -1; return null; }
       if (!k) {
-        k = el('span', null, { className: 'siegel' }); k.setAttribute('role', 'button'); k.tabIndex = 0; $('.best').append(k);
+        k = el('span', null, { className: 'siegel klein' }); k.setAttribute('role', 'button'); k.tabIndex = 0; $('.best').append(k);
         k.addEventListener('click', e => { e.stopPropagation(); if (kleinStufe >= 0 && !feierLaeuft) siegelOeffnen(kleinStufe); });
         k.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && kleinStufe >= 0) { e.preventDefault(); siegelOeffnen(kleinStufe); } });
       }
       if (kleinStufe !== n) { k.innerHTML = siegelSVG(STUFEN[n].id); kleinStufe = n; }
       k.setAttribute('aria-label', 'Siegel Meister/in der ' + titel + ' – ' + STUFEN[n].name + ', groß ansehen');
+      kleinOrt();
       flaecheSetzen(n);
       return k;
     }
@@ -800,7 +816,7 @@
       siegelTexte(n, st, zi);
       box.append(g, st, zi, el('p', 'Tippen zum Schließen', { className: 'tipp' }));
       document.body.append(box); box.focus();
-      const zu = () => { removeEventListener('keydown', taste); box.remove(); const k = $('.best .siegel'); if (k) k.focus(); };
+      const zu = () => { removeEventListener('keydown', taste); box.remove(); const k = kleinEl(); if (k) k.focus(); };
       const taste = e => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); zu(); } };
       box.addEventListener('click', zu); setTimeout(() => addEventListener('keydown', taste), 0);
     }
@@ -1004,7 +1020,7 @@
         ani(dunkel, [{ opacity: 1 }, { opacity: 0 }], { duration: T.flugDauer, easing: 'ease-in-out' });
         ani(tipp, [{ opacity: 0.85 }, { opacity: 0 }], { duration: 250, easing: 'ease-out' });
       });
-      spaeter(T.flug + T.flugDauer, () => { const k = $('.best .siegel'); if (k) k.style.opacity = ''; landen(true); });
+      spaeter(T.flug + T.flugDauer, () => { const k = kleinEl(); if (k) k.style.opacity = ''; landen(true); });
       spaeter(T.flug + T.flugDauer + 30, abschluss);
     }
     function klemmeS(v, a, b) { return Math.min(b, Math.max(a, v)); }
