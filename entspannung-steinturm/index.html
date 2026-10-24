@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#191919">
+<title>Steinturm</title>
+<link rel="stylesheet" href="rahmen.css">
+<style>
+  /* Schrift der Website: Titillium Web, lokal (schrift/, Lizenz OFL schrift/OFL.txt, nur Latin) – nichts von fremden Servern */
+  @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 400; font-display: swap; src: url('schrift/titillium-web-400.woff2') format('woff2'); }
+  @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 600; font-display: swap; src: url('schrift/titillium-web-600.woff2') format('woff2'); }
+  @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 700; font-display: swap; src: url('schrift/titillium-web-700.woff2') format('woff2'); }
+  @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 900; font-display: swap; src: url('schrift/titillium-web-900.woff2') format('woff2'); }
+  /* Bereich Entspannung (MZ, 23.10.2026): Avatar im Startbild ruhiger als Frau/Mann – sanft hereingleiten statt springen/wackeln.
+     Gilt nur für dieses Spiel (rahmen.css bleibt unverändert); reduced-motion und Bildpause aus rahmen.css gelten weiter. */
+  @keyframes figurSanft {
+    0% { opacity: 0; transform: translateX(-34%); }
+    55% { opacity: 1; }
+    100% { opacity: 1; transform: none; }
+  }
+  .stil-protokoll #startSchirm:not([hidden]) .figur { animation: figurSanft 1.8s .45s cubic-bezier(.22,.61,.36,1) both; }
+</style>
+<link rel="preload" as="font" type="font/woff2" href="schrift/titillium-web-700.woff2" crossorigin>
+<!-- Hintergrund des Start- und Spielbilds früh laden -->
+<link rel="preload" as="image" href="bilder/start.webp">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+</head>
+<body>
+<script src="kunde/kunde.js"></script>
+<script src="rahmen.js"></script>
+<script src="spiel.js"></script>
+<script>
+// Service Worker der Sammlung (Sammlung als App installierbar, zuerst Netz – siehe ../sw.js)
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('../sw.js').catch(() => {});
+</script>
+</body>
+</html>

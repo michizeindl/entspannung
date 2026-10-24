@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>entSPANNUNG&nbsp;– RSI protect®</title>
+<!-- App-Icon „entSPANNUNG“ (Variante A „Weiß“, MZ 23.10.2026) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-title" content="entSPANNUNG">
+<link rel="preload" as="image" href="bilder/icon-blitzschutz.webp">
+<link rel="preload" as="font" type="font/woff2" href="schrift/titillium-web-700.woff2" crossorigin>
+<style>
+  /* Startseite „entSPANNUNG“ – Layout B1 „Farbblöcke“ (MZ, 23.10.2026; Vorlagen Material/Vorschau/startseite-layouts/
+     layout-b1.html und layout-b1-quer.html): weißer Logo-Balken, darunter Sammlungsname und Gesamt-Bestwert, dann drei
+     exakt gleich hohe Blöcke (Blitzschutz Gelb, Elektroprüfung Grau, Entspannung Hellgrau) mit großem Icon im weißen Ring,
+     Bereichsname und je drei Spielzeilen (Bestwert, blauer ▶-Knopf). Blau und Lila nur als Akzent (Knöpfe). Unten Adresse,
+     Impressum, Datenschutz. Schrift Titillium Web (falls auf dem Gerät vorhanden), sonst Segoe UI/Systemschrift. */
+  /* Schrift der Website: Titillium Web, lokal (schrift/, Lizenz OFL schrift/OFL.txt, nur Latin) – nichts von fremden Servern */
+  @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 400; font-display: swap; src: url('schrift/titillium-web-400.woff2') format('woff2'); }
+  @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 600; font-display: swap; src: url('schrift/titillium-web-600.woff2') format('woff2'); }
+  @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 700; font-display: swap; src: url('schrift/titillium-web-700.woff2') format('woff2'); }
+  @font-face { font-family: 'Titillium Web'; font-style: normal; font-weight: 900; font-display: swap; src: url('schrift/titillium-web-900.woff2') format('woff2'); }
+  :root {
+    --gelb: #FFD500; --grau: #575757; --dunkel: #191919; --hell: #f2f2f2; --blau: #0F9CD8; --lila: #951B81;
+    --balken-h: 62px; --logo-h: 40px; --ton: 30px; --name: 36px; --best: 20px;
+    --icon: 150px; --ring: 6px; --h2: 30px; --zeile-h: 32px; --zeile-abstand: 7px; --zeile-f: 14px; --wert-f: 11px; --play: 24px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overscroll-behavior: none; }
+  html { background: #fff; }
+  html.unten { background: var(--grau); }   /* Rand unter dem Band beim Weiterwischen in der Farbe des Bands */
+  body {
+    min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: #fff; color: var(--dunkel);
+    font-family: "Titillium Web", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Logo-Balken: Logo steht für sich (MZ, 20.10.2026), Ton-Knopf rechts (Lila) */
+  .logobalken {
+    position: relative; z-index: 2; flex: none; display: flex; align-items: center; justify-content: center;
+    height: calc(var(--balken-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); background: #fff;
+  }
+  .logo { display: block; height: var(--logo-h); width: auto; }
+  #tonKnopf {
+    position: absolute; right: 14px; top: calc(env(safe-area-inset-top) + (var(--balken-h) - var(--ton)) / 2);
+    width: var(--ton); height: var(--ton); padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+    background: var(--blau);   /* Ton-Knopf blau (MZ 24.10.2026) */ color: #fff; display: grid; place-items: center; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    transition: transform .15s, filter .15s;
+  }
+  #tonKnopf svg { width: 60%; height: 60%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #tonKnopf:hover { transform: scale(1.1); filter: brightness(1.1); }
+  #tonKnopf:active { transform: scale(.92); }
+  /* Sammlungsname „entSPANNUNG“ (Schreibweise MZ) als Wortmarke, siehe unten bei .name */
+  /* Kopf: Wortmarke oben, freier Raum, Punktezeile fast direkt am ersten Block (ca. 10px, MZ 23.10.2026) */
+  .kopf { flex: none; text-align: center; padding: 14px 16px 10px; }
+  /* Wortmarke „Rund & kantig“ (MZ, 23.10.2026; Vorlage Material/Vorschau/titel-logo/titel-vorschlaege.html, Vorschlag 2):
+     „ent“ weiß in weicher grauer Pille (links rund), „SPANNUNG“ dunkel auf kantigem gelbem Schrägbalken (Parallelogramm).
+     Maße in em (Vorlage 40px), Größe je Format über --name; im schmalen Hochformat schrumpft sie mit der Breite. */
+  .name {
+    margin: 0; display: flex; justify-content: center; align-items: center; line-height: 1;
+    font-size: min(var(--name), calc((100vw - 40px) / 9.2));
+  }
+  .name .e { background: var(--grau); color: #fff; font-weight: 600; padding: .2em .5em .25em .55em; border-radius: 999px 0 0 999px; position: relative; z-index: 1; }
+  .name .s {
+    position: relative; overflow: hidden; background: var(--gelb); color: var(--dunkel); font-weight: 900; letter-spacing: .025em;
+    padding: .2em .65em .25em .55em; margin-left: -.15em; clip-path: polygon(0 0, 100% 0, calc(100% - .35em) 100%, 0 100%);   /* links gerade an die Pille (MZ 24.10.2026), rechts schräg */
+  }
+  /* Glanzstreifen für das Aufblitzen des Balkens (läuft per Skript durch) */
+  .name .glanz {
+    position: absolute; top: 0; bottom: 0; left: 0; width: 40%; pointer-events: none; opacity: 0; transform: translateX(-110%) skewX(-20deg);
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85) 50%, rgba(255,255,255,0));
+  }
+  .best { margin: 30px 0 0; font-size: var(--best); line-height: 1.25; color: var(--grau); }
+  /* Gesamtpunktzahlen: weiß auf kleinem lila Kästchen (Ton-Knopf-Farbe) – auf allen Blockfarben lesbar (MZ 24.10.2026) */
+  .best b, .summe b {
+    font-weight: 700; color: #fff; background: var(--lila); display: inline-block; padding: .05em .45em; border-radius: 999px;
+    line-height: 1.25; min-width: 1.35em; box-sizing: border-box; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    /* runde Pille; Zahlen immer vierstellig („0.000“, MZ 24.10.2026) */
+  }
+  /* Gesamt je Bereich: rechtsbündig an der rechten Kante der Spielzeilen (MZ 24.10.2026), Größe wie die Bestwerte */
+  .summe {
+    width: 100%; max-width: 440px; margin: 6px 0 0; text-align: right; font-size: var(--wert-f); line-height: 1.2;
+    padding-right: 0; font-variant-numeric: tabular-nums;
+  }
+  /* Drei Blöcke, exakt gleich hoch (grid-auto-rows: 1fr; kein optischer Ausgleich, MZ 23.10.2026) */
+  .bloecke { display: grid; grid-template-columns: 1fr; grid-auto-rows: 1fr; }
+  .block {
+    position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 22px 18px 22px;
+  }
+  .block .flaeche { position: absolute; inset: 0; z-index: -1; background: var(--farbe); }
+  .gelb { --farbe: var(--gelb); color: var(--dunkel); }
+  .grau { --farbe: var(--grau); color: #fff; }
+  .hell { --farbe: var(--hell); color: var(--dunkel); }
+  .icon {
+    display: block; width: var(--icon); height: var(--icon); border-radius: 50%; border: var(--ring) solid #fff;
+    background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,.25); flex: none;
+  }
+  .block h2 { margin: 10px 0 12px; font-size: var(--h2); font-weight: 700; line-height: 1; text-align: center; }
+  .spiele { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: var(--zeile-abstand); }
+  .spiel {
+    display: flex; justify-content: space-between; align-items: center; height: var(--zeile-h); padding: 0 4px 0 12px;
+    background: rgba(255,255,255,.5); color: inherit; text-decoration: none; font-size: var(--zeile-f); font-weight: 600;
+    transition: transform .18s ease-out, background-color .18s;
+  }
+  .grau .spiel { background: rgba(255,255,255,.18); }
+  .spiel .r { display: flex; align-items: center; white-space: nowrap; }
+  .spiel small { font-size: var(--wert-f); font-weight: 400; opacity: .9; font-variant-numeric: tabular-nums; }
+  .play {
+    flex: none; width: var(--play); height: var(--play); margin-left: 8px; border-radius: 50%; background: var(--blau);
+    display: inline-grid; place-items: center; transition: transform .18s;
+  }
+  .play svg { width: 42%; height: 42%; margin-left: 8%; fill: #fff; }
+  @media (hover: hover) {
+    a.spiel:hover { transform: translateX(3px); background: rgba(255,255,255,.72); }
+    .grau a.spiel:hover { background: rgba(255,255,255,.3); }
+    a.spiel:hover .play { transform: scale(1.12); }
+  }
+  a.spiel:active { transform: scale(.98); }
+  a.spiel:focus-visible { outline: 2px solid var(--blau); outline-offset: 2px; }
+  /* noch nicht gebaut: nur abgegraut, nicht antippbar, ohne Hinweistext (kein „demnächst“, MZ 21.10.2026) */
+  .spiel.bald { opacity: .42; pointer-events: none; cursor: default; }
+  .spiel.bald .play { background: #8a8a8a; }
+  /* Band unten: Adresse, Impressum, Datenschutz */
+  .fuss {
+    flex: none; background: var(--grau); color: #fff; font-size: 11px; line-height: 1.45; text-align: center;
+    padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+  }
+  .fuss p { margin: 0; }
+  .fuss .teil { white-space: nowrap; }
+  .fuss a { color: inherit; text-decoration: underline; text-decoration-color: rgba(255,255,255,.5); text-underline-offset: 2px; }
+  .fuss a:hover, .fuss a:focus-visible { text-decoration-color: #fff; }
+  .fuss .trenner-quer { display: none; }
+
+  /* Querformat (MZ, 23.10.2026, „passt so“): drei Blöcke nebeneinander, gleich breit und hoch, Inhalt senkrecht mittig */
+  @media (orientation: landscape) and (min-width: 560px) {
+    .bloecke { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; }
+    .block { padding: 16px 16px 12px; }
+    .fuss p { display: inline; }
+    .fuss .trenner-quer { display: inline; }
+    /* Handy quer (z. B. 780 × 360): kleiner, Seite scrollt kurz */
+    :root { --balken-h: 46px; --logo-h: 30px; --ton: 26px; --name: 28px; --best: 19px; --icon: 104px; --ring: 5px; --h2: 20px;
+      --zeile-h: 28px; --zeile-abstand: 6px; --zeile-f: 13px; --wert-f: 10px; --play: 20px; }
+    .kopf { padding: 6px 16px 8px; }
+    .best { margin-top: 14px; }
+    .bloecke { height: 300px; flex: none; }
+    .block h2 { margin: 9px 0; }
+    .spiel { padding: 0 4px 0 10px; }
+    .play { margin-left: 6px; }
+    :root { --play-ml: 6px; }
+    .fuss { font-size: 10px; padding: 7px 8px calc(7px + env(safe-area-inset-bottom)); }
+  }
+  /* PC/Tablet quer (z. B. 1280 × 720): Blöcke füllen die Höhe, alles ohne Scrollen */
+  @media (orientation: landscape) and (min-width: 900px) and (min-height: 600px) {
+    :root { --balken-h: 64px; --logo-h: 42px; --ton: 30px; --name: 40px; --best: 22px; --icon: 170px; --ring: 6px; --h2: 30px;
+      --zeile-h: 34px; --zeile-abstand: 8px; --zeile-f: 15px; --wert-f: 12px; --play: 24px; }
+    .kopf { padding: 10px 16px 10px; }
+    .best { margin-top: 32px; }
+    .bloecke { flex: 1 1 auto; height: auto; min-height: 380px; }
+    .block { padding: 8px 34px 8px; }
+    .block h2 { margin: 14px 0; }
+    .spiel { padding: 0 6px 0 14px; }
+    :root { --zeile-pr: 6px; }
+    .fuss { font-size: 12px; padding: 9px 8px calc(9px + env(safe-area-inset-bottom)); }
+  }
+  /* Kopf im Querformat (MZ, 24.10.2026; Vorlage Material/Vorschau/kopf-quer/kopf-quer-vorschlaege.html: Anordnung wie
+     Vorschlag 2, Punkte wie Vorschlag 3): eine weiße Kopfleiste – links Logo, feine senkrechte Linie, Wortmarke (getrennte
+     Elemente); rechts „Deine RSI protect Punkte“ klein über der großen Zahl (weiß auf Lila), direkt vor dem Ton-Knopf.
+     Umsetzung: Seite als Raster – Logo-Balken (links) und Kopf (rechts) teilen sich die erste Zeile; Blöcke und Band volle Breite. */
+  @media (orientation: landscape) and (min-width: 560px) {
+    :root { --balken-h: 136px; --logo-h: 40px; --ton: 28px; --name: 30px; --best-t: 11px; --best-z: 20px; }   /* Höhe wie vor der Umstellung (MZ 24.10.2026) */
+    body { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 1fr auto; position: relative; }
+    .bloecke, .fuss { grid-column: 1 / -1; }
+    .logobalken { position: static; justify-content: flex-start; padding-left: 20px; animation-name: balkenReinQuer !important; translate: none !important; }
+    /* Nur Deckkraft: ein „translate“ am Logo-Balken würde den Ton-Knopf an den Balken binden statt an die Seite – er lag dann über dem Logo */
+    #tonKnopf { z-index: 3; right: 20px; }   /* liegt jetzt über der Kopfzeile rechts (Bezug: body), Randabstand wie das Logo links */
+    .kopf {
+      animation-name: balkenReinQuer !important; translate: none !important;   /* kein translate: sonst wäre .kopf Bezug der Punkte-Anzeige */
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left;
+      padding: env(safe-area-inset-top) calc(14px + var(--ton) + 16px) 0 0; height: calc(var(--balken-h) + env(safe-area-inset-top));
+    }
+    /* Wortmarke endet vor der mittigen Punkte-Anzeige: Platz = halbe Breite − halbe Anzeige − Abstand − Logo-Teil */
+    .name { justify-content: flex-start; font-size: min(var(--name), calc((50vw - var(--name-rest, 200px)) / 10.6)); }
+    .name::before { content: ""; align-self: center; width: 1px; height: 1.7em; margin: 0 .75em 0 .8em; background: #d6d6d6; }   /* feine Trennlinie zum Logo */
+    .best { margin: 0; display: flex; flex-direction: column; align-items: center; font-size: var(--best-t); line-height: 1.15; letter-spacing: .3px; white-space: nowrap; }
+    /* MZ 24.10.2026: Punkte-Anzeige in der Seitenmitte (links Logo + Wortmarke, rechts Ton-Knopf, je mit Randabstand) */
+    .best { position: absolute; left: 50%; top: calc(env(safe-area-inset-top) + var(--balken-h) / 2); transform: translate(-50%, -50%); }
+    .best .dp { display: none; }
+    .best b { font-size: var(--best-z); margin-top: 3px; }
+  }
+  @media (orientation: landscape) and (min-width: 900px) and (min-height: 600px) {
+    :root { --balken-h: 204px; --logo-h: 64px; --ton: 40px; --name: 44px; --best-t: 16px; --best-z: 34px; }   /* Höhe wie vor der Umstellung (MZ 24.10.2026) */
+    .logobalken { padding-left: 28px; }
+    #tonKnopf { right: 28px; }
+    :root { --name-rest: 300px; }
+    .best b { margin-top: 4px; }
+  }
+
+  /* ---------- Sanfte Animationen (MZ, 22.10.2026): gestaffelt einblenden, nie hektisch ---------- */
+  @keyframes balkenRein { from { opacity: 0; translate: 0 -100%; } }
+  @keyframes balkenReinQuer { from { opacity: 0; } }
+  @keyframes rein { from { opacity: 0; translate: 0 14px; } }
+  @keyframes iconRein { 0% { opacity: 0; scale: .6; } 65% { opacity: 1; scale: 1.06; } 100% { scale: 1; } }
+  @keyframes fussRein { from { opacity: 0; translate: 0 100%; } }
+  .logobalken { animation: balkenRein .55s .02s cubic-bezier(.2,.8,.3,1) both; }
+  .kopf { animation: rein .5s .15s ease-out both; }
+  .block .icon { animation: iconRein .6s calc(.28s + var(--b) * .12s) cubic-bezier(.2,.9,.3,1.2) both; }
+  .block h2 { animation: rein .45s calc(.42s + var(--b) * .12s) ease-out both; }
+  .spiel { animation: rein .4s calc(.52s + var(--b) * .12s + var(--z) * .06s) ease-out both; }
+  .summe { animation: rein .4s calc(.7s + var(--b) * .12s) ease-out both; }   /* nach der 3. Spielzeile */
+  .fuss { animation: fussRein .5s .9s cubic-bezier(.2,.8,.3,1) both; }
+  .block:nth-child(1) { --b: 0; } .block:nth-child(2) { --b: 1; } .block:nth-child(3) { --b: 2; }
+  .spiel:nth-child(1) { --z: 0; } .spiel:nth-child(2) { --z: 1; } .spiel:nth-child(3) { --z: 2; }
+  .spiel.bald { animation-name: reinBald; }
+  @keyframes reinBald { from { opacity: 0; translate: 0 14px; } to { opacity: .42; } }
+  /* weniger Bewegung: siehe Ende des Stils (nur Deckkraft-Einblendungen bleiben) */
+
+  /* ---------- Intro „Die drei Kreise finden ihren Platz“ (MZ, 23.10.2026, „top“): ca. 3s beim ersten Öffnen der Sitzung.
+     Weißer Grund, App-Icon ploppt auf → Logo gleitet an seine Stelle im Logo-Balken, „entSPANNUNG“ blendet ein → die drei
+     Icons lösen sich, wachsen, fliegen an ihre Block-Plätze und bekommen den weißen Ring; am Ziel breitet sich die Blockfarbe
+     wellenförmig aus, „SPANNUNG“ flackert kurz beim Blitz-Kreis → Bereichsnamen, Spielzeilen, Gesamt-Bestwert gestaffelt.
+     Gezeichnet auf #intro (Leinwand über der Seite), die Seite darunter steuert das Skript. Tippen überspringt, ohne Ton. */
+  html.intro { overflow: hidden; }
+  html.intro body::before { content: ""; position: fixed; inset: 0; z-index: 29; background: #fff; }   /* bis die Leinwand steht */
+  html.intro.introLeinwand body::before { display: none; }
+  #intro { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 30; display: block; touch-action: none; cursor: pointer; }
+  html.intro .logobalken, html.intro .kopf, html.intro .icon, html.intro .block h2, html.intro .spiel, html.intro .summe, html.intro .fuss,
+  html.nachIntro .logobalken, html.nachIntro .kopf, html.nachIntro .icon, html.nachIntro .block h2, html.nachIntro .spiel, html.nachIntro .summe, html.nachIntro .fuss { animation: none; }
+  html.intro .logo, html.intro .name, html.intro .best, html.intro .icon, html.intro .block h2, html.intro .spiel, html.intro .summe, html.intro .fuss,
+  html.intro .flaeche, html.intro #tonKnopf { opacity: 0; }
+  html.nachIntro .spiel.bald { opacity: .42; }
+
+  /* ---------- Ruhe-Animationen (MZ, 23.10.2026): nach dem Einblenden bzw. Intro (Klasse „ruhe“), dezent, nie hektisch.
+     Nur transform/opacity/filter (ruckelfrei am Handy). Einmal-Effekte (Blitz, Stecker, Titel) steuert das Skript per
+     Web Animations; Dauer-Effekte (Lotus atmet, ▶ lädt ein) hier. Versteckter Tab: alles angehalten („pausiert“). */
+  .spiel { position: relative; }
+  .play { position: relative; }
+  /* Lotus „atmet“: ±3 % im 5s-Takt, beginnt bei 100 % (kein Sprung) */
+  @keyframes atmen { 0%, 100% { transform: scale(1); } 25% { transform: scale(1.03); } 75% { transform: scale(.97); } }
+  html.ruhe .hell .icon { animation: atmen 5s ease-in-out infinite; }
+  /* ▶ des zuletzt gespielten (sonst ersten spielbaren) Spiels: sanfter Ring alle 2,5s, Knopf wächst kurz mit */
+  .play::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--blau); opacity: 0; pointer-events: none; }
+  @keyframes einladungRing { 0% { transform: scale(1); opacity: .8; } 60%, 100% { transform: scale(1.85); opacity: 0; } }
+  @keyframes einladungKnopf { 0%, 100% { scale: 1; } 12% { scale: 1.09; } 30% { scale: 1; } }
+  html.ruhe .spiel.einladung:not(.bald) .play::after { animation: einladungRing 2.5s ease-out infinite; }
+  html.ruhe .spiel.einladung:not(.bald) .play { animation: einladungKnopf 2.5s ease-in-out infinite; }
+  .grau .play::after { border-color: #fff; }
+  /* Antippen (Finger und Maus): Zeile/Knopf drückt sich ein, kleiner Ring breitet sich an der Tippstelle aus */
+  .tippbox { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .tippring {
+    position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; pointer-events: none;
+    background: rgba(255,255,255,.6); animation: tippring .55s ease-out forwards;
+  }
+  .grau .tippring { background: rgba(255,255,255,.4); }
+  #tonKnopf { overflow: visible; }
+  #tonKnopf .tippring { background: none; border: 2px solid var(--blau); width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+  @keyframes tippring { from { transform: scale(.25); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
+  a.spiel.gedrueckt { transform: scale(.965); background-color: rgba(255,255,255,.8); transition-duration: .08s; }
+  .grau a.spiel.gedrueckt { background-color: rgba(255,255,255,.34); }
+  a.spiel.gedrueckt .play { transform: scale(.86); transition-duration: .08s; }
+  #tonKnopf.gedrueckt { transform: scale(.86); filter: brightness(1.15); transition-duration: .08s; }
+  /* Funken am Stecker (Elemente legt das Skript kurz an) */
+  .funke { position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none; z-index: 1; }
+  /* Funken weiß mit orangem Schein – auf dem gelben Icon sonst kaum sichtbar */
+  .funke.glanz { background: radial-gradient(circle, #fff 0%, #fffbe6 22%, rgba(255,150,0,.6) 46%, rgba(255,150,0,0) 70%); }
+  .funke.stueck { background: #fff; box-shadow: 0 0 3px 1px rgba(255,130,0,.95); }
+  html.pausiert *, html.pausiert *::after { animation-play-state: paused !important; }
+
+  /* ---------- Sammlungs-Siegerfeier (MZ, 23.10.2026, Variante B): Siegel „Meister/in der entSPANNUNG“ ab 6.000 / 7.500 /
+     8.500 RSI protect® Points (Bronze/Silber/Gold). Kleines Siegel dauerhaft neben den Punkten: hoch in der Zeile (ohne
+     die Zeile höher zu machen), quer rechts neben der mittigen Punkte-Anzeige (Text + Zahl bleiben mittig). */
+  .siegel {
+    display: inline-block; vertical-align: middle; width: calc(var(--best) * 1.9); height: calc(var(--best) * 1.9);
+    margin: calc(var(--best) * -.5) 0 calc(var(--best) * -.5) .4em; filter: drop-shadow(0 1px 2px rgba(0,0,0,.3));
+  }
+  .siegel svg, #feier .gross svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  @media (max-width: 359px) { .siegel { width: calc(var(--best) * 1.6); height: calc(var(--best) * 1.6); margin-left: .25em; } }
+  @media (orientation: landscape) and (min-width: 560px) {
+    .best .siegel { position: absolute; left: calc(100% + 12px); top: 50%; width: 44px; height: 44px; margin: -22px 0 0; }
+  }
+  @media (orientation: landscape) and (min-width: 900px) and (min-height: 600px) {
+    .best .siegel { left: calc(100% + 18px); width: 70px; height: 70px; margin-top: -35px; }
+  }
+  /* Bühne der Feier: liegt über der Seite, fängt Tippen ab (überspringt) */
+  #feier { position: fixed; inset: 0; z-index: 40; overflow: hidden; cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  #feier .dunkel { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(25,25,25,.38), rgba(25,25,25,.62)); opacity: 0; }
+  #feier .gross { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; filter: drop-shadow(0 10px 22px rgba(0,0,0,.45)); }
+  #feier .glanzbox { position: absolute; inset: 4%; border-radius: 50%; overflow: hidden; pointer-events: none; }
+  #feier .glanzbox i { position: absolute; top: -10%; bottom: -10%; left: 0; width: 34%; opacity: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.75) 50%, rgba(255,255,255,0)); transform: translateX(-120%) skewX(-18deg); }
+  #feier .welle { position: absolute; border-radius: 50%; border: 3px solid rgba(255,236,160,.95); box-shadow: 0 0 18px rgba(255,213,0,.7); opacity: 0; }
+  #feier .halo { position: absolute; border-radius: 50%; opacity: 0; pointer-events: none;
+    background: radial-gradient(circle, rgba(255,255,255,0) 0 46%, rgba(255,255,255,.95) 50%, rgba(255,236,150,.55) 58%, rgba(255,213,0,0) 72%); }
+  #feier .blatt { position: absolute; width: 10px; height: 16px; border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%; opacity: 0;
+    background: radial-gradient(circle at 50% 35%, #fff, rgba(255,226,120,.9) 60%, rgba(255,213,0,0)); box-shadow: 0 0 8px rgba(255,236,160,.9); }
+  #feier .staub { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #fff6c8; box-shadow: 0 0 6px rgba(255,213,0,.9); opacity: 0; }
+  #feier svg.blitz { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; opacity: 0; }
+
+  /* ---------- weniger Bewegung (prefers-reduced-motion): nur ruhige, kurze Einblendungen (Deckkraft), kein Flackern,
+     Zucken, Funken, Atmen oder Pulsieren; Druck-Effekt nur als Aufhellen. Das Intro hat seine eigene ruhige Fassung. */
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes balkenRein { from { opacity: 0; } }
+    @keyframes rein { from { opacity: 0; } }
+    @keyframes iconRein { from { opacity: 0; } }
+    @keyframes fussRein { from { opacity: 0; } }
+    @keyframes reinBald { from { opacity: 0; } to { opacity: .42; } }
+    .logobalken, .kopf, .block .icon, .block h2, .spiel, .summe, .fuss { animation-duration: .35s; animation-timing-function: ease-out; }
+    html.ruhe .hell .icon, html.ruhe .spiel.einladung:not(.bald) .play, html.ruhe .spiel.einladung:not(.bald) .play::after { animation: none; }
+    *, *::before, *::after { transition-property: opacity, background-color, filter !important; }
+    a.spiel:hover, a.spiel:active, a.spiel.gedrueckt, a.spiel:hover .play, a.spiel.gedrueckt .play,
+    #tonKnopf:hover, #tonKnopf:active, #tonKnopf.gedrueckt { transform: none; }
+    a.spiel.gedrueckt { filter: brightness(1.08); }
+    .tippring, .funke { display: none; }
+  }
+</style>
+<!-- Kundendaten früh laden; Intro nur beim ersten Öffnen in dieser Sitzung (sessionStorage, Präfix mg:).
+     Testhilfe #intro bzw. #intro=1.4 (Standbild zu diesem Zeitpunkt) -->
+<script src="kunde/kunde.js"></script>
+<script>
+  (function () {
+    const K = window.KUNDE || {}, h = location.hash;
+    let gesehen = false;
+    try { gesehen = sessionStorage.getItem('mg:intro:' + (K.firma || '')) === '1'; } catch (e) { /* privat */ }
+    if (/(^#|&)intro(?![a-z])/.test(h) || !gesehen) document.documentElement.classList.add('intro');
+  })();
+</script>
+</head>
+<body>
+<header class="logobalken">
+  <img class="logo" alt="">
+  <button id="tonKnopf" type="button" aria-label="Musik an oder aus"></button>
+</header>
+<div class="kopf">
+  <h1 class="name"><span class="e"></span><span class="s"></span></h1>
+  <p class="best"></p>
+</div>
+
+<main class="bloecke">
+  <section class="block gelb">
+    <div class="flaeche" aria-hidden="true"></div>
+    <img class="icon" src="bilder/icon-blitzschutz.webp" alt="">
+    <h2>Blitzschutz</h2>
+    <nav class="spiele" aria-label="Spiele Blitzschutz">
+      <a class="spiel" href="blitzschutz-fangstange/" data-id="fangstange"><span>Fangstange</span><span class="r"><small></small><span class="play"></span></span></a>
+      <!-- noch nicht gebaut: Klasse „bald“, kein href – nur abgegraut -->
+      <a class="spiel" href="blitzschutz-blitzkugel/" data-id="blitzkugel"><span>Blitzkugel</span><span class="r"><small></small><span class="play"></span></span></a>
+      <a class="spiel" href="blitzschutz-dachcheck/" data-id="dach-check"><span>Dach-Check</span><span class="r"><small></small><span class="play"></span></span></a>
+    </nav>
+  </section>
+  <section class="block grau">
+    <div class="flaeche" aria-hidden="true"></div>
+    <img class="icon" src="bilder/icon-elektro.webp" alt="">
+    <h2>Elektroprüfung</h2>
+    <nav class="spiele" aria-label="Spiele Elektroprüfung">
+      <a class="spiel" href="elektro-pruefplakette/" data-id="pruefplakette"><span>Prüfplakette</span><span class="r"><small></small><span class="play"></span></span></a>
+      <a class="spiel" href="elektro-messwert/" data-id="messwert"><span>Messwert</span><span class="r"><small></small><span class="play"></span></span></a>
+      <a class="spiel" href="elektro-sicherungskasten/" data-id="sicherungskasten"><span>Sicherungskasten</span><span class="r"><small></small><span class="play"></span></span></a>
+    </nav>
+  </section>
+  <section class="block hell">
+    <div class="flaeche" aria-hidden="true"></div>
+    <img class="icon" src="bilder/icon-entspannung.webp" alt="">
+    <h2>Entspannung</h2>
+    <nav class="spiele" aria-label="Spiele Entspannung">
+      <a class="spiel" href="entspannung-steinturm/" data-id="steinturm"><span>Steinturm</span><span class="r"><small></small><span class="play"></span></span></a>
+      <a class="spiel" href="entspannung-atemkreis/" data-id="atemkreis"><span>Atemkreis</span><span class="r"><small></small><span class="play"></span></span></a>
+      <a class="spiel" href="entspannung-zengarten/" data-id="zen-garten"><span>Zen-Garten</span><span class="r"><small></small><span class="play"></span></span></a>
+    </nav>
+  </section>
+</main>
+
+<footer class="fuss">
+  <p class="adresse"></p><span class="trenner-quer"> – </span><p class="rechtliches"></p>
+</footer>
+
+<script>
+  (function () {
+    'use strict';
+    const K = window.KUNDE || {}, F = Object.assign({ haupt: '#FFD500', grau: '#575757', dunkel: '#191919', hell: '#f2f2f2', knopf: '#0F9CD8', ton: '#951B81' }, K.farben);
+    const wurzel = document.documentElement, s = wurzel.style;
+    s.setProperty('--gelb', F.haupt); s.setProperty('--grau', F.grau); s.setProperty('--dunkel', F.dunkel);
+    s.setProperty('--hell', F.hell); s.setProperty('--blau', F.knopf); s.setProperty('--lila', F.ton);
+    const $ = q => document.querySelector(q), $$ = q => [...document.querySelectorAll(q)];
+    const el = (tag, text, attr) => { const e = document.createElement(tag); if (text != null) e.textContent = text; Object.assign(e, attr || {}); return e; };
+
+    // Logo, Sammlungsname („ent“ klein, „SPANNUNG“ groß – aus kunde.js texte.titel), Titel
+    const logo = $('.logo');
+    logo.src = K.logoAufHell || K.logo || 'kunde/logo.png';
+    logo.alt = K.firma || '';
+    const titel = (K.texte && K.texte.titel) || 'entSPANNUNG', teil = /^([a-zäöüß]*)(.*)$/.exec(titel);
+    $('.name .e').textContent = teil[1]; $('.name .s').textContent = teil[2];
+    $('.name .s').append(el('span', null, { className: 'glanz' }));   // Glanzstreifen für das Aufblitzen
+    document.title = titel + ' – ' + (K.titelZusatz || K.firma);   // „entSPANNUNG – RSI protect®“ (MZ 24.10.2026)
+
+    // ▶ als Zeichnung (das Zeichen ▶ wird auf manchen Handys als Emoji gezeigt)
+    $$('.play').forEach(p => { p.innerHTML = '<svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0L10 6L0 12Z"/></svg>'; });
+
+    // Bestwerte: je Spiel „854/1.000“, noch nicht gespielt „–“; oben Gesamt-Bestwert über alle 9 Spiele (max. 9.000)
+    const best = id => { try { return +localStorage.getItem('mg:best:' + id + ':' + (K.firma || '')) || 0; } catch (e) { return 0; } };
+    const zeilen = $$('.spiel');
+    let gesamt = 0;
+    zeilen.forEach(a => {
+      const b = best(a.dataset.id);
+      gesamt += b;
+      a.querySelector('small').textContent = b > 0 ? b.toLocaleString('de-DE') + '/1.000' : '–';
+      if (!a.classList.contains('bald')) a.setAttribute('aria-label', a.firstElementChild.textContent + (b > 0 ? ', Bestwert ' + b.toLocaleString('de-DE') + ' von 1.000 Punkten' : '') + ', spielen');
+    });
+    // MZ 23.10.2026: nur die Zahl, die fett (deutlich größer: --best ca. 1,7-fach)
+    $('.best').textContent = '';
+    $('.best').append(el('span', 'RSI protect® Points', { className: 't' }), el('span', ': ', { className: 'dp' }));   // quer: Doppelpunkt aus, Zahl darunter
+    // Gesamtpunktzahlen immer vierstellig, z. B. „0.000“ (MZ 24.10.2026)
+    const vier = n => n.toLocaleString('de-DE', { minimumIntegerDigits: 4 });
+    $('.best').append(el('b', vier(gesamt)));
+    // Gesamtpunktzahl je Bereich (MZ, 23.10.2026): nur die Zahl, fett, mit Tausenderpunkt (kein „Gesamt:“), rechtsbündig
+    // unter den Bestwerten; Summe der Bestwerte des Bereichs (0, wenn noch nichts gespielt ist – auch bei abgegrauten Bereichen)
+    $$('.block').forEach(blk => {
+      const summe = [...blk.querySelectorAll('.spiel')].reduce((s, a) => s + best(a.dataset.id), 0);
+      const p = el('p', null, { className: 'summe' });
+      p.append(el('b', vier(summe)));
+      p.setAttribute('aria-label', 'Punkte ' + blk.querySelector('h2').textContent + ': ' + summe.toLocaleString('de-DE'));
+      blk.querySelector('.spiele').after(p);
+    });
+
+    // Band unten: Adresse (jeder Teil bleibt zusammen) und Impressum/Datenschutz (neuer Tab)
+    const adr = $('.adresse');
+    (K.adresse || []).forEach((t, i) => { if (i) adr.append(' – '); adr.append(el('span', t, { className: 'teil' })); });
+    const re = $('.rechtliches');
+    (K.rechtliches || []).forEach((l, i) => { if (i) re.append(' – '); re.append(el('a', l.text, { href: l.link, target: '_blank', rel: 'noopener' })); });
+
+    // Rand unter dem Band in Grau, sobald man im unteren Teil der Seite ist
+    const randFarbe = () => { const max = Math.max(0, wurzel.scrollHeight - innerHeight); wurzel.classList.toggle('unten', scrollY >= 0 && scrollY >= max / 2); };
+    randFarbe();
+    addEventListener('scroll', randFarbe, { passive: true });
+    addEventListener('resize', randFarbe);
+
+    // ---------- Musik der Startseite (MZ, 23.10.2026): „Technology Ambient Background“ (kornevmusic, Pixabay), Ausschnitt
+    // 80,0–142,5s – treibend, dann ruhiger Ausklang. Spielt EINMAL nach dem ersten Tippen, danach Stille (keine Schleife);
+    // beim nächsten Aufruf der Startseite beginnt sie neu. Nur hier, nicht in den Spielen. Ton an/aus gilt für alle (mg:ton).
+    const MUSIK = { datei: 'klaenge/musik.mp3', proben: 1378125, pegel: 0.32 };
+    const SYM_AN = '<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>';
+    const SYM_AUS = '<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+    let tonAn = true;
+    try { tonAn = localStorage.getItem('mg:ton') !== 'aus'; } catch (e) { /* privat */ }
+    const knopf = $('#tonKnopf'), symbol = () => { knopf.innerHTML = tonAn ? SYM_AN : SYM_AUS; };
+    symbol();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    let ac = null, puffer = null, laeuft = null, stelle = 0, zuEnde = false;
+    // MP3 bringt vorn 1105 Proben Stille mit (bei 22,05 kHz) – mit der echten Länge genau zuschneiden (wie rahmen.js)
+    function zuschneiden(b) {
+      const RATE = 22050, VORLAUF = 1105, ueber = b.duration * RATE - MUSIK.proben;
+      if (ueber < 2) return b;
+      const ab = Math.round((ueber >= VORLAUF - 4 ? VORLAUF : 0) / RATE * b.sampleRate);
+      const laenge = Math.min(b.length - ab, Math.round(MUSIK.proben / RATE * b.sampleRate));
+      const neu = ac.createBuffer(b.numberOfChannels, laenge, b.sampleRate);
+      for (let k = 0; k < b.numberOfChannels; k++) neu.getChannelData(k).set(b.getChannelData(k).subarray(ab, ab + laenge));
+      return neu;
+    }
+    function an() {
+      if (!tonAn || laeuft || zuEnde || !AC) return;
+      if (!ac) {
+        ac = new AC();
+        fetch(MUSIK.datei).then(r => r.arrayBuffer()).then(b => new Promise((ok, nein) => ac.decodeAudioData(b, ok, nein)))
+          .then(b => { puffer = zuschneiden(b); an(); }).catch(() => {});
+      }
+      if (ac.state !== 'running') ac.resume().then(() => { if (ac.state === 'running') an(); }).catch(() => {});
+      if (!puffer || ac.state !== 'running') return;
+      const q = ac.createBufferSource(), v = ac.createGain();
+      q.buffer = puffer;   // keine Schleife
+      v.gain.setValueAtTime(0.0001, ac.currentTime);
+      v.gain.exponentialRampToValueAtTime(MUSIK.pegel, ac.currentTime + (stelle ? 0.6 : 0.15));
+      q.connect(v).connect(ac.destination);
+      const beginn = ac.currentTime - stelle;
+      q.start(0, stelle);
+      const lauf = laeuft = { q, v, beginn };
+      q.onended = () => { if (laeuft === lauf) { laeuft = null; zuEnde = true; stelle = 0; } };   // einmal gespielt: Stille
+    }
+    function aus() {
+      if (!laeuft) return;
+      const { q, v, beginn } = laeuft;
+      laeuft = null;
+      stelle = Math.max(0, ac.currentTime - beginn);   // beim Wiedereinschalten an derselben Stelle weiter
+      try { v.gain.setTargetAtTime(0.0001, ac.currentTime, 0.12); q.stop(ac.currentTime + 0.8); } catch (e) { /* egal */ }
+    }
+    // Browser erlauben Ton erst nach dem ersten Tippen
+    ['pointerup', 'touchend', 'keydown'].forEach(e => addEventListener(e, an, { passive: true }));
+    knopf.addEventListener('click', () => {
+      tonAn = !tonAn;
+      try { localStorage.setItem('mg:ton', tonAn ? 'an' : 'aus'); } catch (e) { /* privat */ }
+      symbol();
+      if (tonAn) an(); else aus();
+    });
+    window.__musik = { get laeuft() { return !!laeuft; }, get zuEnde() { return zuEnde; }, get stelle() { return laeuft && ac ? +(ac.currentTime - laeuft.beginn).toFixed(1) : stelle; } };   // Testhilfe
+
+    // ---------- Ruhe-Animationen (MZ, 23.10.2026): dezent, nie hektisch, erst nach dem Einblenden bzw. Intro ----------
+    // Takte: Blitz-Icon flackert alle 6–9s (0,3s, zwei Spitzen); Stecker alle 8–14s abwechselnd Funke an einem Stift
+    // (Aufblitzen + 2–3 Funken) oder kurzes Zucken; Lotus atmet ±3 % im 5s-Takt (CSS); gelber Balken der Wortmarke blitzt alle 10–15s (0,26s);
+    // ▶ des zuletzt gespielten Spiels lädt im 2,5s-Takt ein (CSS). Zwischen zwei Einmal-Effekten mindestens 1,2s Ruhe.
+    // Versteckter Tab: keine Einmal-Effekte, CSS-Schleifen angehalten. Weniger Bewegung: nichts davon.
+    const RUHE = { blitz: [6000, 9000], stecker: [8000, 14000], titel: [10000, 15000], abstand: 1200,
+      erst: { blitz: [2500, 4000], stecker: [6000, 8500], titel: [10000, 13000] } };   // erste Effekte gestaffelt
+    const weniger = matchMedia('(prefers-reduced-motion: reduce)');
+    const ZULETZT = 'mg:zuletzt:' + (K.firma || '');   // zuletzt gespieltes Spiel (data-id), gesetzt beim Antippen der Zeile
+    const icBlitz = $('.gelb .icon'), icStecker = $('.grau .icon');
+    function einladungSetzen() {
+      let id = null;
+      try { id = localStorage.getItem(ZULETZT); } catch (e) { /* privat */ }
+      const spielbar = zeilen.filter(a => !a.classList.contains('bald') && a.getAttribute('href'));
+      const ziel = spielbar.find(a => a.dataset.id === id) || spielbar[0];   // abgegraute pulsieren nie
+      zeilen.forEach(a => a.classList.toggle('einladung', a === ziel));
+    }
+    einladungSetzen();
+    const zufall = ([a, b]) => a + Math.random() * (b - a);
+    let ruheLaeuft = false, letzterEffekt = -1e9, steckerArt = 0, feierLaeuft = false;   // während der Siegerfeier keine Ruhe-Effekte
+    function takt(name, tun) {
+      const weiter = ms => setTimeout(() => {
+        if (document.hidden || weniger.matches || feierLaeuft) { weiter(zufall(RUHE[name])); return; }
+        const frei = performance.now() - letzterEffekt;
+        if (frei < RUHE.abstand) { weiter(RUHE.abstand - frei + 300); return; }
+        letzterEffekt = performance.now(); tun(); weiter(zufall(RUHE[name]));
+      }, ms);
+      weiter(zufall(RUHE.erst[name]));
+    }
+    // Blitz: Icon blitzt zweimal kurz hell auf (Helligkeit + weißer Schein), 0,3s
+    function blitz() {
+      const aus = 'brightness(1) drop-shadow(0 0 0 rgba(255,255,255,0))';
+      icBlitz.animate([
+        { filter: aus },
+        { filter: 'brightness(1.75) drop-shadow(0 0 14px rgba(255,255,255,.95))', offset: 0.12 },
+        { filter: 'brightness(1.1) drop-shadow(0 0 4px rgba(255,255,255,.3))', offset: 0.3 },
+        { filter: 'brightness(1.55) drop-shadow(0 0 18px rgba(255,255,255,.9))', offset: 0.48 },
+        { filter: aus }
+      ], { duration: 300, easing: 'linear' });
+    }
+    // Stecker: abwechselnd Funke und Zucken
+    function stecker() { (steckerArt++ % 2 === 0 ? funke : zucken)(); }
+    function zucken() {
+      icStecker.animate([{ transform: 'none' }, { transform: 'translate(-2px, 1px) rotate(-2.5deg)', offset: 0.2 },
+        { transform: 'translate(2px, -1px) rotate(2deg)', offset: 0.45 }, { transform: 'translate(-1px, 0) rotate(-1deg)', offset: 0.7 },
+        { transform: 'none' }], { duration: 280, easing: 'ease-out' });
+    }
+    // Stiftspitzen im Icon (Bild 340 × 340: x 135 bzw. 205, y 80) als Anteil der Bildfläche innerhalb des weißen Rings
+    const STIFTE = [[0.397, 0.235], [0.603, 0.235]];
+    function funke() {
+      const ic = icStecker, blk = ic.parentElement, w = ic.offsetWidth, ring = ic.clientLeft, innen = w - 2 * ring, k = w / 150;
+      const [fx, fy] = STIFTE[Math.random() < 0.5 ? 0 : 1];
+      const x = ic.offsetLeft + ring + fx * innen, y = ic.offsetTop + ring + fy * innen;
+      const mach = (art, s) => {
+        const e = el('span', null, { className: 'funke ' + art });
+        e.setAttribute('aria-hidden', 'true');
+        Object.assign(e.style, { width: s + 'px', height: s + 'px', left: (x - s / 2) + 'px', top: (y - s / 2) + 'px' });
+        blk.append(e);
+        return e;
+      };
+      const glanz = mach('glanz', 34 * k);
+      glanz.animate([{ transform: 'scale(.3)', opacity: 0 }, { transform: 'scale(1.1)', opacity: 1, offset: 0.2 },
+        { transform: 'scale(.7)', opacity: 0.5, offset: 0.4 }, { transform: 'scale(1)', opacity: 0.9, offset: 0.55 },
+        { transform: 'scale(1.3)', opacity: 0 }], { duration: 380, easing: 'ease-out' }).onfinish = () => glanz.remove();
+      const n = Math.random() < 0.5 ? 2 : 3;
+      for (let i = 0; i < n; i++) {
+        const s = (3.5 + Math.random() * 1.5) * k, wnk = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, weit = (16 + Math.random() * 14) * k;
+        const st = mach('stueck', s), dx = Math.cos(wnk) * weit, dy = Math.sin(wnk) * weit;
+        st.animate([{ transform: 'translate(0, 0) scale(1)', opacity: 1 },
+          { transform: `translate(${(dx * 0.75).toFixed(1)}px, ${(dy * 0.75).toFixed(1)}px) scale(.9)`, opacity: 1, offset: 0.5 },
+          { transform: `translate(${dx.toFixed(1)}px, ${(dy + 6 * k).toFixed(1)}px) scale(.4)`, opacity: 0 }],
+          { duration: 360 + Math.random() * 160, delay: 40 + i * 30, easing: 'ease-out', fill: 'backwards' }).onfinish = () => st.remove();
+      }
+      ic.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.15)', offset: 0.2 }, { filter: 'brightness(1)' }], { duration: 300 });
+    }
+    // Wortmarke: der gelbe Balken „SPANNUNG“ blitzt kurz auf – Helligkeit + Glanzstreifen läuft durch, 0,26s
+    // (Ruhe-Animation alle 10–15s und im Intro bei Ankunft des Blitz-Kreises)
+    function balkenBlitz() {
+      const s = $('.name .s'), gl = s && s.querySelector('.glanz');
+      if (!s || !s.animate) return;
+      s.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.35)', offset: 0.25 }, { filter: 'brightness(1.08)', offset: 0.55 },
+        { filter: 'brightness(1.2)', offset: 0.7 }, { filter: 'brightness(1)' }], { duration: 260, easing: 'linear' });
+      if (gl) gl.animate([{ transform: 'translateX(-110%) skewX(-20deg)', opacity: 0.9 }, { transform: 'translateX(270%) skewX(-20deg)', opacity: 0.9 }],
+        { duration: 260, easing: 'cubic-bezier(.3,.1,.5,1)' });
+    }
+    function ruheStarten() {
+      if (ruheLaeuft) return;
+      ruheLaeuft = true;
+      einladungSetzen();
+      wurzel.classList.add('ruhe');
+      if (!icBlitz || !icBlitz.animate) return;
+      takt('blitz', blitz); takt('stecker', stecker); takt('titel', balkenBlitz);
+    }
+    document.addEventListener('visibilitychange', () => wurzel.classList.toggle('pausiert', document.hidden));
+    // Antippen: Druck-Effekt (Klasse „gedrueckt“, mind. 0,11s) und Ring an der Tippstelle – Spielzeilen und Ton-Knopf
+    function druecken(e, ziel, box) {
+      if (e.button > 0) return;
+      ziel.classList.add('gedrueckt'); ziel.__seit = performance.now();
+      if (weniger.matches) return;
+      const r = box.getBoundingClientRect(), ring = el('span', null, { className: 'tippring' });
+      ring.setAttribute('aria-hidden', 'true');
+      ring.style.left = (e.clientX - r.left).toFixed(1) + 'px'; ring.style.top = (e.clientY - r.top).toFixed(1) + 'px';
+      box.append(ring);
+      ring.addEventListener('animationend', () => ring.remove());
+    }
+    const loslassen = ziel => setTimeout(() => ziel.classList.remove('gedrueckt'), Math.max(0, 110 - (performance.now() - (ziel.__seit || 0))));
+    const druckAn = (ziel, box) => {
+      ziel.addEventListener('pointerdown', e => druecken(e, ziel, box));
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => ziel.addEventListener(n, () => loslassen(ziel)));
+    };
+    zeilen.forEach(a => {
+      if (a.classList.contains('bald') || !a.getAttribute('href')) return;
+      const box = el('span', null, { className: 'tippbox' });
+      box.setAttribute('aria-hidden', 'true');
+      a.append(box);
+      druckAn(a, box);
+      a.addEventListener('click', e => {
+        try { localStorage.setItem(ZULETZT, a.dataset.id); } catch (err) { /* privat */ }
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        // kurz warten, damit der Druck-Effekt sichtbar ist, dann ins Spiel
+        e.preventDefault();
+        a.classList.add('gedrueckt');
+        setTimeout(() => { location.href = a.href; }, 140);
+      });
+    });
+    druckAn(knopf, knopf);
+    // Zurück aus dem Spiel (Seite aus dem Zwischenspeicher): Druck lösen, Einladung neu setzen
+    addEventListener('pageshow', () => { $$('.gedrueckt').forEach(x => x.classList.remove('gedrueckt')); einladungSetzen(); });
+    window.__ruhe = { blitz, funke, zucken, titel: balkenBlitz, starten: ruheStarten, get laeuft() { return ruheLaeuft; } };   // Testhilfe
+
+    // ---------- Sammlungs-Siegerfeier (MZ, 23.10.2026, Variante B, drei Stufen) ----------
+    // Grundlage: RSI protect® Points (Summe der 9 Bestwerte, max. 9.000) – ab 6.000 Bronze, ab 7.500 Silber, ab 8.500 Gold.
+    // Jede Stufe wird einmal gefeiert: beim ersten Überschreiten, wenn die Startseite (neu oder aus dem Zwischenspeicher)
+    // erscheint – erst nach Intro bzw. Einblenden; bei mehreren neuen Stufen nur die höchste. Gespeichert: mg:siegel:<firma>
+    // = zuletzt gefeierte Stufe. Ablauf ca. 4,2s, Tippen/Taste überspringt: Blitz schlägt ins Blitz-Icon → Funken am Stecker →
+    // Lotus blüht (Lichtblätter steigen auf) → Wortmarke glüht → Siegel wird mittig aufgestempelt (Klang klaenge/siegel.mp3,
+    // nur bei Ton an) → fliegt verkleinert an seinen Platz neben den Punkten. Weniger Bewegung: nur kurze Einblendung.
+    // Siegel per Code (SVG): gekerbter Metallrand, Ringschrift „RSI protect® geprüft“, unten die Stufe, Mitte
+    // „Meister/in der“ + Wortmarke „Rund & kantig“. Testhilfen: #feier=bronze|silber|gold (Feier ohne Speicher),
+    // #siegel=bronze|silber|gold (nur kleines Siegel), window.__siegel.
+    const STUFEN = [{ id: 'bronze', ab: 6000, name: 'Bronze' }, { id: 'silber', ab: 7500, name: 'Silber' }, { id: 'gold', ab: 8500, name: 'Gold' }];
+    const METALL = {   // hell, Mitte, dunkel, Schatten, Gravur
+      bronze: { a: '#ffe4c6', b: '#d6925a', c: '#94532a', d: '#5e3015', s: '#3f1d08' },
+      silber: { a: '#ffffff', b: '#dce1e6', c: '#98a0a8', d: '#5f666e', s: '#2b3035' },
+      gold:   { a: '#fff8cf', b: '#f5cd52', c: '#b8840f', d: '#7c5605', s: '#422c00' },
+    };
+    const SIEGEL_KEY = 'mg:siegel:' + (K.firma || '');
+    // Klang: Plakette (Prüfplakette) als Stempel-Aufprall + Klangschale und „Zen Tone High“ (Steinturm); Aufprall bei 0,157s
+    const SIEGEL_TON = { datei: 'klaenge/siegel.mp3', proben: 61739, pegel: 0.8, aufprall: 0.157 };
+    const stufeNr = id => STUFEN.findIndex(x => x.id === id);
+    const stufeVon = p => { let n = -1; STUFEN.forEach((x, i) => { if (p >= x.ab) n = i; }); return n; };
+    const gesamtJetzt = () => zeilen.reduce((s, a) => s + best(a.dataset.id), 0);
+    const gefeiertLesen = () => { try { return stufeNr(localStorage.getItem(SIEGEL_KEY)); } catch (e) { return -1; } };
+    const testFeier = /(?:^#|&)feier=(bronze|silber|gold)/.exec(location.hash), testSiegel = /(?:^#|&)siegel=(bronze|silber|gold)/.exec(location.hash);
+    let siegelNr = 0;
+    function siegelSVG(id) {
+      const m = METALL[id], p = 'sg' + (++siegelNr) + '-', st = STUFEN[stufeNr(id)];
+      let rand = '';   // gekerbter Rand: 72 Kerben
+      for (let i = 0; i < 144; i++) { const w = i / 144 * Math.PI * 2, r = i % 2 ? 93 : 99; rand += (i ? 'L' : 'M') + (Math.sin(w) * r).toFixed(2) + ' ' + (-Math.cos(w) * r).toFixed(2); }
+      const stern = (wnk, r, g) => {   // fünfzackiger Stern bei Winkel wnk (Grad, 0 = oben)
+        const cx = Math.sin(wnk * Math.PI / 180) * r, cy = -Math.cos(wnk * Math.PI / 180) * r;
+        let d = '';
+        for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5, rr = i % 2 ? g * 0.42 : g; d += (i ? 'L' : 'M') + (cx + Math.sin(a) * rr).toFixed(2) + ' ' + (cy - Math.cos(a) * rr).toFixed(2); }
+        return d + 'Z';
+      };
+      const verlauf = (n, x1, y1, x2, y2) => `<linearGradient id="${p}${n}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"><stop offset="0" stop-color="${m.a}"/>` +
+        `<stop offset=".3" stop-color="${m.b}"/><stop offset=".58" stop-color="${m.c}"/><stop offset=".8" stop-color="${m.b}"/><stop offset="1" stop-color="${m.d}"/></linearGradient>`;
+      const pfad = n => `href="#${p}${n}" xlink:href="#${p}${n}"`;
+      const ring = `<text font-size="14.5" letter-spacing=".5"><textPath ${pfad('o')} startOffset="50%">RSI protect® geprüft</textPath></text>` +
+        `<text font-size="13" letter-spacing="1.6"><textPath ${pfad('u')} startOffset="50%">${st.name}</textPath></text>` +
+        `<path d="${stern(-121, 70, 5.5)}${stern(121, 70, 5.5)}"/>`;
+      return `<svg viewBox="-100 -100 200 200" aria-hidden="true" focusable="false" xmlns:xlink="http://www.w3.org/1999/xlink"><defs>${verlauf('m', 0, 0, 1, 1)}${verlauf('r', 1, 1, 0, 0)}` +
+        `<radialGradient id="${p}g" cx=".3" cy=".2" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></radialGradient>` +
+        `<path id="${p}o" d="M-64 0A64 64 0 0 1 64 0"/><path id="${p}u" d="M-75 0A75 75 0 0 0 75 0"/></defs>` +
+        `<path d="${rand}Z" fill="url(#${p}m)" stroke="${m.d}" stroke-width="1"/>` +
+        `<circle r="87" fill="url(#${p}r)"/><circle r="84" fill="url(#${p}m)"/><circle r="84" fill="url(#${p}g)"/>` +
+        `<g font-weight="700" text-anchor="middle"><g fill="rgba(255,255,255,.5)" transform="translate(0 1)">${ring}</g><g fill="${m.s}">${ring}</g></g>` +
+        `<circle r="57" fill="#fff" stroke="url(#${p}r)" stroke-width="3.5"/>` +
+        `<text y="-10" text-anchor="middle" font-size="13.5" font-weight="700" fill="${F.grau}">Meister/in der</text>` +
+        `<path d="M-20 -1H51L45 19H-20Z" fill="${F.haupt}"/><path d="M-18 -1H-41A10 10 0 0 0 -41 19H-18Z" fill="${F.grau}"/>` +
+        `<text x="-30" y="13.2" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">${teil[1]}</text>` +
+        `<text x="13" y="13.5" text-anchor="middle" font-size="12.5" font-weight="900" fill="${F.dunkel}" textLength="58" lengthAdjust="spacingAndGlyphs">${teil[2]}</text></svg>`;
+    }
+    // Kleines Siegel neben den Punkten (n = Stufe 0–2, −1 = keins)
+    let kleinStufe = -1;
+    function kleinSetzen(n) {
+      let k = $('.best .siegel');
+      if (n < 0) { if (k) k.remove(); kleinStufe = -1; return null; }
+      if (!k) { k = el('span', null, { className: 'siegel' }); k.setAttribute('role', 'img'); $('.best').append(k); }
+      if (kleinStufe !== n) { k.innerHTML = siegelSVG(STUFEN[n].id); kleinStufe = n; }
+      k.setAttribute('aria-label', 'Siegel Meister/in der ' + titel + ' – ' + STUFEN[n].name);
+      return k;
+    }
+    // angezeigt wird die erreichte Stufe; steht eine Feier noch aus, bis dahin die zuletzt gefeierte
+    function siegelStand() {
+      if (testSiegel) return stufeNr(testSiegel[1]);
+      const erreicht = stufeVon(gesamtJetzt()), gefeiert = gefeiertLesen();
+      return erreicht > gefeiert ? gefeiert : erreicht;
+    }
+    kleinSetzen(siegelStand());
+    // Punkte neu lesen (Rückkehr aus dem Zwischenspeicher: die Seite zeigt sonst die alten Bestwerte)
+    function punkteAuffrischen() {
+      zeilen.forEach(a => { const b = best(a.dataset.id); a.querySelector('small').textContent = b > 0 ? b.toLocaleString('de-DE') + '/1.000' : '–'; });
+      $('.best b').textContent = vier(gesamtJetzt());
+      $$('.block').forEach(blk => { const sb = blk.querySelector('.summe b'); if (sb) sb.textContent = vier([...blk.querySelectorAll('.spiel')].reduce((s, a) => s + best(a.dataset.id), 0)); });
+    }
+    // Klang (eigener Audio-Kontext; Ton-Knopf gilt; ohne vorheriges Tippen erlaubt der Browser evtl. keinen Ton)
+    let tonAc = null, tonPuffer = null, tonVorlauf = 0, tonZuletzt = null;
+    function tonVorbereiten() {
+      if (!AC || !tonAn) return;
+      try { if (!tonAc) tonAc = new AC(); } catch (e) { return; }
+      if (tonAc.state !== 'running') tonAc.resume().catch(() => {});
+      if (tonPuffer) return;
+      fetch(SIEGEL_TON.datei).then(r => r.arrayBuffer()).then(b => new Promise((ok, nein) => tonAc.decodeAudioData(b, ok, nein)))
+        .then(b => { tonPuffer = b; tonVorlauf = b.duration * 22050 - SIEGEL_TON.proben >= 1100 ? 1105 / 22050 : 0; }).catch(() => {});
+    }
+    function tonSpielen(ab) {   // ab: Sekunden im Klang (0 = Anfang, 0,157 = Aufprall)
+      if (!tonAn || !tonAc || !tonPuffer || tonAc.state !== 'running') return false;
+      const q = tonAc.createBufferSource(), v = tonAc.createGain();
+      q.buffer = tonPuffer; v.gain.value = SIEGEL_TON.pegel;
+      q.connect(v).connect(tonAc.destination);
+      q.start(0, tonVorlauf + (ab || 0));
+      tonZuletzt = performance.now();
+      return true;
+    }
+    let feierPlan = null;
+    function feiern(n) {
+      if (feierLaeuft || n < 0) return;
+      feierLaeuft = true;
+      tonVorbereiten();
+      const B = innerWidth, H = innerHeight, S = Math.round(klemmeS(Math.min(B, H) * 0.64, 200, 340));
+      const buehne = el('div', null, { id: 'feier' }), dunkel = el('div', null, { className: 'dunkel' });
+      buehne.setAttribute('aria-hidden', 'true');
+      const gross = el('div', null, { className: 'gross' }), glanzbox = el('div', null, { className: 'glanzbox' }), glanzI = el('i');
+      gross.innerHTML = siegelSVG(STUFEN[n].id);
+      glanzbox.append(glanzI); gross.append(glanzbox);
+      Object.assign(gross.style, { width: S + 'px', height: S + 'px', left: (B / 2 - S / 2) + 'px', top: (H / 2 - S / 2) + 'px', opacity: 0 });
+      buehne.append(dunkel, gross);
+      document.body.append(buehne);
+      const anis = [], uhren = [];
+      const spaeter = (ms, f) => uhren.push(setTimeout(f, ms));
+      const ani = (e, kf, opt) => { if (!e || !e.animate) return null; const a = e.animate(kf, Object.assign({ fill: 'both' }, opt)); anis.push(a); return a; };
+      const neu = (klasse, x, y, w, h) => { const e = el('div', null, { className: klasse }); Object.assign(e.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' }); buehne.append(e); return e; };
+      let tonGespielt = false, fertig = false, gestempelt = false;
+      const ton = ab => { if (!tonGespielt) tonGespielt = tonSpielen(ab); };
+      function landen(sanft) {   // kleines Siegel erscheint an seinem Platz
+        const k = kleinSetzen(n);
+        if (k && k.animate) k.animate(weniger.matches || !sanft ? [{ opacity: 0 }, { opacity: 1 }] : [{ scale: 1.35 }, { scale: 0.92, offset: 0.55 }, { scale: 1 }], { duration: 260, easing: 'ease-out' });
+      }
+      function abschluss() {
+        if (fertig) return;
+        fertig = true;
+        uhren.forEach(clearTimeout);
+        anis.forEach(a => { try { a.cancel(); } catch (e) { /* egal */ } });
+        buehne.remove();
+        feierLaeuft = false;
+      }
+      function ueberspringen() {
+        if (fertig) return;
+        uhren.forEach(clearTimeout);
+        const tonFehlt = !gestempelt;
+        anis.forEach(a => { try { a.cancel(); } catch (e) { /* egal */ } });
+        landen(false);
+        if (tonFehlt && !tonGespielt) {   // Tippen schaltet den Ton frei: Stempel-Klang ab dem Aufprall
+          tonVorbereiten();
+          const versuch = () => { if (tonAc) tonAc.resume().then(() => ton(SIEGEL_TON.aufprall)).catch(() => {}); };
+          addEventListener('pointerup', versuch, { once: true }); addEventListener('keyup', versuch, { once: true });
+          setTimeout(() => { removeEventListener('pointerup', versuch); removeEventListener('keyup', versuch); }, 1500);
+        }
+        fertig = true; feierLaeuft = false;
+        const aus = buehne.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-out', fill: 'forwards' });
+        aus.onfinish = () => buehne.remove();
+      }
+      buehne.addEventListener('pointerdown', e => { e.preventDefault(); ueberspringen(); });
+      const taste = e => { if (fertig) { removeEventListener('keydown', taste); return; } if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); ueberspringen(); } };
+      addEventListener('keydown', taste);
+
+      if (weniger.matches) {   // weniger Bewegung: Siegel kurz einblenden, dann ausblenden, kleines Siegel blendet ein
+        gross.style.transform = 'rotate(-8deg)';
+        ani(dunkel, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
+        ani(gross, [{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: 'ease-out' });
+        spaeter(200, () => { gestempelt = true; ton(0); });
+        spaeter(2000, () => {
+          ani(dunkel, [{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-out' });
+          ani(gross, [{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-out' });
+          landen(false);
+        });
+        spaeter(2400, abschluss);
+        return;
+      }
+      const T = { blitz: 0, stecker: 650, lotus: 1300, marke: 2050, dunkel: 2450, stempel: 2500, aufprall: 2850, flug: 3550, flugDauer: 650 };
+      const mitte = e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, d: r.width }; };
+      // Kreis leuchtet auf: heller Lichtring am weißen Rand + Icon hell
+      function aufleuchten(ic, verz) {
+        const m = mitte(ic), d = m.d * 2;
+        const h = neu('halo', m.x - d / 2, m.y - d / 2, d, d);
+        ani(h, [{ opacity: 0, transform: 'scale(.88)' }, { opacity: 1, transform: 'scale(1)', offset: 0.25 }, { opacity: 0, transform: 'scale(1.4)' }], { duration: 950, delay: verz, easing: 'ease-out' });
+        ani(ic, [{ filter: 'brightness(1)' }, { filter: 'brightness(1.3) drop-shadow(0 0 16px rgba(255,255,255,.9))', offset: 0.25 }, { filter: 'brightness(1)' }], { duration: 950, delay: verz, fill: 'none' });
+      }
+      // 1 Blitz schlägt ins Blitz-Icon ein (Zickzack von oben, flackert zweimal)
+      {
+        const m = mitte(icBlitz), r = m.d / 2, zx = m.x, zy = m.y - r * 0.2;
+        const x0 = m.x + (Math.random() < 0.5 ? -1 : 1) * r * 0.6, y0 = Math.min(m.y - r - 60, Math.max(-20, m.y - r - Math.max(200, H * 0.35)));
+        const pkt = [];
+        for (let i = 0; i <= 9; i++) { const t = i / 9; pkt.push([x0 + (zx - x0) * t + (i && i < 9 ? (Math.random() - 0.5) * r * 0.55 : 0), y0 + (zy - y0) * t]); }
+        const ast = [pkt[4]];
+        for (let i = 1; i <= 3; i++) ast.push([ast[i - 1][0] + (x0 < zx ? -1 : 1) * r * (0.18 + Math.random() * 0.12), ast[i - 1][1] + r * (0.22 + Math.random() * 0.1)]);
+        const linie = (pp, farbe, breite, extra) => `<polyline points="${pp.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ')}" fill="none" stroke="${farbe}" stroke-width="${breite}" stroke-linejoin="round" stroke-linecap="round" ${extra || ''}/>`;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'blitz'); svg.setAttribute('viewBox', `0 0 ${B} ${H}`);
+        svg.innerHTML = linie(pkt, 'rgba(255,236,140,.75)', 16, 'style="filter:blur(5px)"') + linie(ast, 'rgba(255,236,140,.6)', 8, 'style="filter:blur(3px)"') +
+          linie(ast, '#fff', 2.5) + linie(pkt, '#fff', 5);
+        buehne.append(svg);
+        ani(svg, [{ opacity: 0 }, { opacity: 1, offset: 0.06 }, { opacity: 0.2, offset: 0.2 }, { opacity: 1, offset: 0.3 }, { opacity: 0.85, offset: 0.6 }, { opacity: 0 }], { duration: 560, delay: T.blitz, easing: 'linear' });
+        const licht = neu('', 0, 0, B, H); licht.style.background = '#fff';
+        ani(licht, [{ opacity: 0 }, { opacity: 0.22, offset: 0.08 }, { opacity: 0, offset: 0.22 }, { opacity: 0.14, offset: 0.32 }, { opacity: 0 }], { duration: 560, delay: T.blitz, easing: 'linear' });
+        aufleuchten(icBlitz, T.blitz + 40);
+      }
+      // 2 Funken am Stecker
+      aufleuchten(icStecker, T.stecker);
+      spaeter(T.stecker + 60, funke); spaeter(T.stecker + 330, funke);
+      // 3 Lotus blüht: Kreis leuchtet, wächst sanft, Lichtblätter steigen auf (auch sichtbar, wenn der Kreis unter dem Bildrand liegt)
+      {
+        const icL = $('.hell .icon'), m = mitte(icL);
+        aufleuchten(icL, T.lotus);
+        ani(icL, [{ scale: 1 }, { scale: 1.1, offset: 0.4 }, { scale: 1 }], { duration: 900, delay: T.lotus, easing: 'ease-in-out', fill: 'none' });
+        // liegt der Kreis (teils) unter dem Bildrand: Licht steigt vom unteren Rand auf, Blätter starten dort
+        const unten = m.y + m.d * 0.3 > H, y0 = unten ? H + 10 : m.y - m.d * 0.25;
+        if (unten) {
+          const d = m.d * 2.6, gl = neu('', m.x - d / 2, H - d * 0.32, d, d);
+          gl.style.cssText += ';border-radius:50%;background:radial-gradient(circle, rgba(255,250,225,.95), rgba(255,226,120,.55) 35%, rgba(255,213,0,0) 68%)';
+          ani(gl, [{ opacity: 0, transform: 'scale(.7)' }, { opacity: 1, transform: 'scale(1)', offset: 0.3 }, { opacity: 0, transform: 'scale(1.15)' }], { duration: 1100, delay: T.lotus, easing: 'ease-out' });
+        }
+        const steigen = unten ? H * 0.38 : m.d * 1.1;
+        for (let i = 0; i < 9; i++) {
+          const w = i / 8 - 0.5, b = neu('blatt', m.x + w * m.d * 0.75 - 5, y0 - (unten ? 0 : m.d * 0.25 * (1 - Math.abs(w))) - 8, 10, 16);
+          const dy = -(steigen + Math.random() * m.d * 0.7), dx = w * m.d * 0.5 + (Math.random() - 0.5) * 30, rot = w * 50;
+          ani(b, [{ opacity: 0, transform: `translate(0,0) rotate(${rot}deg) scale(.5)` }, { opacity: 1, transform: `translate(${(dx * 0.3).toFixed(1)}px,${(dy * 0.25).toFixed(1)}px) rotate(${rot}deg) scale(1)`, offset: 0.2 },
+            { opacity: 0, transform: `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px) rotate(${(rot * 1.6).toFixed(0)}deg) scale(.7)` }], { duration: 1300 + Math.random() * 400, delay: T.lotus + 80 + i * 40, easing: 'cubic-bezier(.2,.6,.4,1)' });
+        }
+      }
+      // 4 Wortmarke glüht, gelber Balken blitzt zweimal
+      ani($('.name'), [{ filter: 'drop-shadow(0 0 0 rgba(255,213,0,0))' }, { filter: 'drop-shadow(0 0 14px rgba(255,213,0,.95)) brightness(1.06)', offset: 0.4 }, { filter: 'drop-shadow(0 0 0 rgba(255,213,0,0))' }], { duration: 850, delay: T.marke, fill: 'none' });
+      spaeter(T.marke + 40, balkenBlitz); spaeter(T.marke + 360, balkenBlitz);
+      // 5 Siegel wird mittig aufgestempelt (fällt beschleunigt auf, federt kurz), Lichtwelle + Funkenstaub, Glanz läuft durch
+      ani(dunkel, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, delay: T.dunkel, easing: 'ease-out' });
+      const fall = (T.aufprall - T.stempel) / 1000, halt = 0.7;   // Fallzeit, danach Federn (Anteile der 1s-Animation)
+      ani(gross, [
+        { opacity: 0, transform: 'scale(1.9) rotate(-2deg)', easing: 'cubic-bezier(.55,0,1,.5)' },
+        { opacity: 1, transform: 'scale(1.45) rotate(-6deg)', offset: fall * 0.4, easing: 'cubic-bezier(.55,0,1,.5)' },
+        { opacity: 1, transform: 'scale(1) rotate(-10deg)', offset: fall },
+        { opacity: 1, transform: 'scale(.94) rotate(-10deg)', offset: fall + 0.07 },
+        { opacity: 1, transform: 'scale(1.025) rotate(-10deg)', offset: fall + 0.17 },
+        { opacity: 1, transform: 'scale(1) rotate(-10deg)', offset: Math.min(halt, fall + 0.28) },
+        { opacity: 1, transform: 'scale(1) rotate(-10deg)' }], { duration: 1000, delay: T.stempel });
+      spaeter(T.aufprall - SIEGEL_TON.aufprall * 1000, () => ton(0));
+      spaeter(T.aufprall, () => { gestempelt = true; });
+      {
+        const wl = neu('welle', B / 2 - S / 2, H / 2 - S / 2, S, S);
+        ani(wl, [{ opacity: 0.95, transform: 'scale(.92)' }, { opacity: 0, transform: 'scale(1.55)' }], { duration: 650, delay: T.aufprall, easing: 'ease-out', fill: 'forwards' });
+        for (let i = 0; i < 12; i++) {
+          const w = (i / 12 + Math.random() * 0.04) * Math.PI * 2, r0 = S * 0.47, r1 = S * (0.6 + Math.random() * 0.18);
+          const st = neu('staub', B / 2 + Math.cos(w) * r0 - 3, H / 2 + Math.sin(w) * r0 - 3, 6, 6);
+          ani(st, [{ opacity: 1, transform: 'translate(0,0) scale(1)' }, { opacity: 0, transform: `translate(${(Math.cos(w) * (r1 - r0)).toFixed(1)}px,${(Math.sin(w) * (r1 - r0)).toFixed(1)}px) scale(.4)` }], { duration: 520 + Math.random() * 200, delay: T.aufprall, easing: 'ease-out', fill: 'forwards' });
+        }
+        ani(glanzI, [{ opacity: 0.9, transform: 'translateX(-120%) skewX(-18deg)' }, { opacity: 0.9, transform: 'translateX(330%) skewX(-18deg)' }], { duration: 600, delay: T.aufprall + 250, easing: 'cubic-bezier(.3,.1,.5,1)', fill: 'none' });
+      }
+      // 6 Siegel fliegt verkleinert an seinen Platz neben den Punkten, Abdunklung geht zurück
+      spaeter(T.flug, () => {
+        const k = kleinSetzen(n);
+        if (k) k.style.opacity = '0';
+        const z = k ? k.getBoundingClientRect() : null;
+        if (!z || !z.width || z.bottom < 0 || z.top > H) {   // Platz nicht sichtbar: Siegel blendet aus
+          ani(gross, [{ opacity: 1 }, { opacity: 0 }], { duration: 400, easing: 'ease-out' });
+        } else {
+          const dx = z.left + z.width / 2 - B / 2, dy = z.top + z.height / 2 - H / 2, kk = z.width / S;
+          ani(gross, [{ transform: 'scale(1) rotate(-10deg)', opacity: 1 }, { transform: `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px) scale(${kk.toFixed(3)}) rotate(0deg)`, opacity: 1 }],
+            { duration: T.flugDauer, easing: 'cubic-bezier(.45,0,.25,1)' });
+        }
+        ani(dunkel, [{ opacity: 1 }, { opacity: 0 }], { duration: T.flugDauer, easing: 'ease-in-out' });
+      });
+      spaeter(T.flug + T.flugDauer, () => { const k = $('.best .siegel'); if (k) k.style.opacity = ''; landen(true); });
+      spaeter(T.flug + T.flugDauer + 30, abschluss);
+    }
+    function klemmeS(v, a, b) { return Math.min(b, Math.max(a, v)); }
+    function feierPruefen(verz) {
+      clearTimeout(feierPlan);
+      if (!feierLaeuft) kleinSetzen(siegelStand());
+      feierPlan = setTimeout(function los() {
+        if (document.hidden) { document.addEventListener('visibilitychange', los, { once: true }); return; }
+        if (wurzel.classList.contains('intro') || feierLaeuft) return;
+        if (testFeier) { feiern(stufeNr(testFeier[1])); return; }
+        if (testSiegel) return;
+        const erreicht = stufeVon(gesamtJetzt());
+        if (erreicht > gefeiertLesen()) {
+          try { localStorage.setItem(SIEGEL_KEY, STUFEN[erreicht].id); } catch (e) { /* privat */ }
+          feiern(erreicht);
+        }
+      }, verz);
+    }
+    addEventListener('pageshow', e => { if (e.persisted) { punkteAuffrischen(); feierPruefen(500); } });
+    window.__siegel = {   // Testhilfe
+      get punkte() { return gesamtJetzt(); },
+      get stufe() { const n = stufeVon(gesamtJetzt()); return n < 0 ? null : STUFEN[n].id; },
+      get gefeiert() { const n = gefeiertLesen(); return n < 0 ? null : STUFEN[n].id; },
+      get angezeigt() { return kleinStufe < 0 ? null : STUFEN[kleinStufe].id; },
+      get laeuft() { return feierLaeuft; },
+      get ton() { return { an: tonAn, kontext: tonAc ? tonAc.state : null, geladen: !!tonPuffer, zuletzt: tonZuletzt }; },
+      feiern: id => feiern(stufeNr(id)),
+      pruefen: () => feierPruefen(0),
+      zuruecksetzen() { try { localStorage.removeItem(SIEGEL_KEY); } catch (e) { /* privat */ } kleinSetzen(siegelStand()); },
+      svg: siegelSVG,
+    };
+
+    if (!wurzel.classList.contains('intro')) { setTimeout(ruheStarten, 1500); feierPruefen(1500); }   // nach dem gestaffelten Einblenden (ca. 1,4s)
+
+    // ---------- Intro „Die drei Kreise finden ihren Platz“ ----------
+    const ruhig = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const testIntro = /(?:^#|&)intro(?:=([\d.]+))?(?:&|$)/.exec(location.hash);
+    if (!wurzel.classList.contains('intro')) return;
+    const klemme = (v, a, b) => Math.min(b, Math.max(a, v));
+    const anteil = (t, a, b) => klemme((t - a) / (b - a), 0, 1);
+    const weich = p => p * p * (3 - 2 * p);
+    const rausK = p => 1 - Math.pow(1 - p, 3);
+    const misch = (a, b, p) => a + (b - a) * p;
+    // App-Icon (icons2.py, 1024er Einheiten): Logo 600 breit bei (212, 267), drei Kreise Ø 160 bei x 244/432/620, y 597
+    const ICON = { logo: [212, 267, 600], kreise: [244, 432, 620], kreisY: 597, kreisD: 160 };
+    // Zeitplan in Sekunden
+    const IZ = { icon: [0, 0.4], kachelAus: [0.4, 0.7], logo: [0.4, 1.2], name: [0.75, 1.2], flug: [1.2, 1.95], versatz: 0.1,
+      welle: 0.5, inhalt: 2.2, best: 2.4, fuss: 2.55, ende: 3.0 };
+    const stand = testIntro && testIntro[1] != null ? parseFloat(testIntro[1]) : null;
+    const bloecke = $$('.block'), icons = bloecke.map(b => b.querySelector('.icon')), flaechen = bloecke.map(b => b.querySelector('.flaeche'));
+    const laden = src => new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+    Promise.all([laden(logo.src), ...icons.map(i => laden(i.src))]).then(([logoBild, ...kreisBilder]) => {
+      if (!logoBild || kreisBilder.some(k => !k)) { beenden(); return; }
+      abspielen(logoBild, kreisBilder);
+    });
+    function beenden() {
+      wurzel.classList.remove('intro', 'introLeinwand');
+      wurzel.classList.add('nachIntro');
+      setTimeout(ruheStarten, 600);   // Ruhe-Animationen erst nach dem Intro
+      feierPruefen(700);              // Siegerfeier (falls fällig) erst nach dem Intro
+      try { sessionStorage.setItem('mg:intro:' + (K.firma || ''), '1'); } catch (e) { /* privat */ }
+    }
+    function abspielen(logoBild, kreisBilder) {
+      const lw = document.createElement('canvas');
+      lw.id = 'intro'; lw.setAttribute('aria-hidden', 'true');
+      document.body.append(lw);
+      const g = lw.getContext('2d');
+      let start = performance.now(), skip = null, fertig = false;
+      const gesetzt = {};
+      const stufe = (name, t, bei, tun) => { if (!gesetzt[name] && t >= bei) { gesetzt[name] = true; tun(); } };
+      const zeigen = (e, verz) => {   // sanft einblenden (Web Animations), danach bleibt es sichtbar
+        e.style.opacity = e.classList.contains('bald') ? '.42' : '1';
+        if (e.animate && !ruhig && stand == null) e.animate([{ opacity: 0, translate: '0 12px' }, { opacity: e.style.opacity, translate: '0 0' }], { duration: 420, delay: verz || 0, easing: 'ease-out', fill: 'backwards' });
+      };
+      // Seite auf den Zeitpunkt t stellen (Logo, Name, Icons, Wellen, Inhalt)
+      function seiteStellen(t) {
+        logo.style.opacity = knopf.style.opacity = t >= IZ.logo[1] || ruhig ? 1 : 0;
+        const n = ruhig ? 1 : anteil(t, IZ.name[0], IZ.name[1]);
+        $('.name').style.opacity = n; $('.name').style.translate = `0 ${((1 - n) * 10).toFixed(1)}px`;
+        icons.forEach((ic, i) => {
+          const an = ruhig || t >= IZ.flug[1] + i * IZ.versatz;
+          ic.style.opacity = an ? 1 : 0;
+          stufe('welle' + i, t, ruhig ? 0 : IZ.flug[1] + i * IZ.versatz, () => welle(i, t));
+        });
+        stufe('flackern', t, ruhig ? 99 : IZ.flug[1], balkenBlitz);   // gelber Balken der Wortmarke blitzt auf
+        bloecke.forEach((b, i) => {
+          stufe('h2' + i, t, ruhig ? 0 : IZ.inhalt + i * 0.08, () => zeigen(b.querySelector('h2')));
+          b.querySelectorAll('.spiel').forEach((z, j) => stufe('z' + i + j, t, ruhig ? 0 : IZ.inhalt + 0.1 + i * 0.08 + j * 0.05, () => zeigen(z)));
+          stufe('summe' + i, t, ruhig ? 0 : IZ.inhalt + 0.25 + i * 0.08, () => zeigen(b.querySelector('.summe')));
+        });
+        stufe('best', t, ruhig ? 0 : IZ.best, () => zeigen($('.best')));
+        stufe('fuss', t, ruhig ? 0 : IZ.fuss, () => zeigen($('.fuss')));
+      }
+      // Blockfarbe breitet sich wellenförmig vom Kreis aus (clip-path circle vom Ring bis zur fernsten Ecke)
+      function welle(i, t) {
+        const f = flaechen[i], b = bloecke[i], ic = icons[i];
+        f.style.opacity = 1;
+        if (ruhig || !f.animate) return;
+        const cx = ic.offsetLeft + ic.offsetWidth / 2, cy = ic.offsetTop + ic.offsetHeight / 2;
+        const r0 = ic.offsetWidth / 2, r1 = Math.hypot(Math.max(cx, b.clientWidth - cx), Math.max(cy, b.clientHeight - cy)) + 4;
+        const an = f.animate([{ clipPath: `circle(${r0}px at ${cx}px ${cy}px)` }, { clipPath: `circle(${r1}px at ${cx}px ${cy}px)` }],
+          { duration: IZ.welle * 1000, easing: 'cubic-bezier(.3,.6,.4,1)', fill: 'backwards' });
+        if (stand != null) { an.pause(); an.currentTime = Math.max(0, (stand - (IZ.flug[1] + i * IZ.versatz)) * 1000); }
+      }
+      function zeichnen(t) {
+        const B = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2.5);
+        if (lw.width !== Math.round(B * dpr) || lw.height !== Math.round(H * dpr)) { lw.width = Math.round(B * dpr); lw.height = Math.round(H * dpr); }
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.clearRect(0, 0, B, H);
+        const S = klemme(Math.min(B, H) * 0.62, 220, 400), u0 = S / 1024;
+        const ein = ruhig ? 1 : rausK(anteil(t, IZ.icon[0], IZ.icon[1])), sk = 0.86 + 0.14 * ein, u = u0 * sk;
+        const ox = B / 2 - 512 * u, oy = H / 2 - 512 * u;
+        if (ruhig) {   // weniger Bewegung: Icon still auf Weiß, blendet kurz aus
+          const a = 1 - anteil(t, 0.25, 0.6);
+          g.globalAlpha = a; g.fillStyle = '#fff'; g.fillRect(0, 0, B, H);
+          g.drawImage(logoBild, ox + ICON.logo[0] * u, oy + ICON.logo[1] * u, ICON.logo[2] * u, ICON.logo[2] * u * logoBild.naturalHeight / logoBild.naturalWidth);
+          ICON.kreise.forEach((x, i) => g.drawImage(kreisBilder[i], ox + x * u, oy + ICON.kreisY * u, ICON.kreisD * u, ICON.kreisD * u));
+          g.globalAlpha = 1;
+          return;
+        }
+        // Kachel des App-Icons (weiß mit Schatten), löst sich nach dem Aufploppen auf
+        const kachel = ein * (1 - anteil(t, IZ.kachelAus[0], IZ.kachelAus[1]));
+        if (kachel > 0) {
+          g.save(); g.globalAlpha = kachel;
+          g.shadowColor = 'rgba(0,0,0,.22)'; g.shadowBlur = S * 0.08; g.shadowOffsetY = S * 0.025; g.fillStyle = '#fff';
+          runderPfad(g, B / 2 - S * sk / 2, H / 2 - S * sk / 2, S * sk, S * sk, S * sk * 0.22); g.fill(); g.restore();
+        }
+        // Logo: aus dem Icon an seine echte Stelle im Logo-Balken (immer vollständig)
+        if (t < IZ.logo[1]) {
+          const lr = logo.getBoundingClientRect(), p = weich(anteil(t, IZ.logo[0], IZ.logo[1]));
+          const w0 = ICON.logo[2] * u, x0 = ox + ICON.logo[0] * u, y0 = oy + ICON.logo[1] * u;
+          const w = misch(w0, lr.width, p), x = misch(x0, lr.left, p), y = misch(y0, lr.top, p);
+          g.globalAlpha = ein; g.drawImage(logoBild, x, y, w, w * logoBild.naturalHeight / logoBild.naturalWidth); g.globalAlpha = 1;
+        }
+        // Kreise: lösen sich, wachsen, fliegen an ihre Block-Plätze und bekommen unterwegs den weißen Ring
+        ICON.kreise.forEach((kx, i) => {
+          const a0 = IZ.flug[0] + i * IZ.versatz, a1 = IZ.flug[1] + i * IZ.versatz;
+          if (t >= a1) return;
+          const p = weich(anteil(t, a0, a1)), ziel = icons[i].getBoundingClientRect();
+          const d0 = ICON.kreisD * u, x0 = ox + kx * u + d0 / 2, y0 = oy + ICON.kreisY * u + d0 / 2;
+          const x1 = ziel.left + ziel.width / 2, y1 = ziel.top + ziel.height / 2;
+          // leicht gebogene Bahn, unterwegs etwas größer als am Ziel
+          const bx = (x0 + x1) / 2 + (i - 1) * S * 0.18, by = Math.min(y0, y1) - S * 0.1;
+          const x = (1 - p) * (1 - p) * x0 + 2 * (1 - p) * p * bx + p * p * x1, y = (1 - p) * (1 - p) * y0 + 2 * (1 - p) * p * by + p * p * y1;
+          const d = misch(d0, ziel.width, p) * (1 + 0.12 * Math.sin(p * Math.PI)), ring = misch(0, parseFloat(getComputedStyle(icons[i]).borderTopWidth) || 6, p);
+          g.save(); g.globalAlpha = ein;
+          if (p > 0) { g.shadowColor = `rgba(0,0,0,${0.25 * p})`; g.shadowBlur = 18 * p; g.shadowOffsetY = 6 * p; }
+          g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, d / 2, 0, Math.PI * 2); g.fill();
+          g.shadowColor = 'transparent';
+          g.beginPath(); g.arc(x, y, d / 2 - ring, 0, Math.PI * 2); g.clip();
+          g.drawImage(kreisBilder[i], x - d / 2 + ring, y - d / 2 + ring, d - 2 * ring, d - 2 * ring);
+          g.restore();
+        });
+      }
+      const ENDE = ruhig ? 0.6 : IZ.ende;
+      function abschluss() {
+        if (fertig) return;
+        fertig = true;
+        seiteStellen(99);
+        lw.remove();
+        [logo, knopf, $('.name'), ...icons, ...flaechen].forEach(e => { e.style.opacity = ''; e.style.translate = ''; });
+        $$('.block h2, .spiel, .summe, .best, .fuss').forEach(e => { e.style.opacity = ''; });
+        beenden();
+      }
+      function bild(jetzt) {
+        if (fertig) return;
+        const t = stand != null ? stand : (jetzt - start) / 1000;
+        if (skip != null) {   // überspringen: Seite sofort fertig, Leinwand blendet kurz aus
+          const q = anteil((jetzt - skip) / 1000, 0, 0.25);
+          lw.style.opacity = 1 - q;
+          if (q >= 1) { abschluss(); return; }
+        } else {
+          if (scrollX || scrollY) scrollTo(0, 0);
+          seiteStellen(t);
+          zeichnen(t);
+          wurzel.classList.add('introLeinwand');
+          if (stand == null && t >= ENDE) { abschluss(); return; }
+        }
+        requestAnimationFrame(bild);
+      }
+      const ueberspringen = () => { if (skip != null || stand != null || fertig) return; skip = performance.now(); seiteStellen(99); };
+      lw.addEventListener('pointerdown', e => { e.preventDefault(); ueberspringen(); });
+      addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') ueberspringen(); });
+      start = performance.now();
+      requestAnimationFrame(bild);
+    }
+    function runderPfad(g, x, y, w, h, r) {
+      g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+    }
+  })();
+</script>
+<script>
+// Service Worker: Sammlung als App installierbar, zuerst Netz – siehe sw.js
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
