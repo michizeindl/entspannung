@@ -51,6 +51,8 @@
   // Übersehene Mängel nach „Zeit um“ (MZ, 23.10.2026): ab 0,55s für 3,0s pulsierend mit Namen; Antippen überspringt zum
   // Drohnen-Wechsel, aber erst 0,5s nach Beginn der Anzeige (sonst überspringt man aus Versehen)
   const UEBERSEHEN = { ab: 0.55, dauer: 3.0, sperre: 0.5 };
+  // Zeit um, aber alle Mängel gefunden (MZ, 26.10.2026): kein Fehler-Auftritt, nur Schild „Alle Mängel gefunden“
+  const VOLLZEIT = { dauer: 1.8, sperre: 0.4 };
 
   // Die 18 Mangelarten (12 Supervisor 23.10.2026, 5 aus den Bögen d/e, 1 aus Bogen f): stufe 0 auffällig, 1 mittel, 2 unauffällig; wirt = woran der Mangel sitzt
   const MANGEL = {
@@ -619,7 +621,7 @@
     // keine Mängel-Anzahl (MZ, 24.10.2026: nicht verraten, wie viele noch fehlen)
     R_.anzeige('Dach ' + (S.nr + 1) + '/' + ANZAHL, '');
   }
-  const q = () => S.phase === 'suchen' || S.phase === 'zeitum' || S.phase === 'geschafft' ? Math.min(1, S.uhr / ZEIT) : 0;
+  const q = () => S.phase === 'suchen' || S.phase === 'zeitum' || S.phase === 'geschafft' || S.phase === 'vollzeit' ? Math.min(1, S.uhr / ZEIT) : 0;
 
   // ---------- Ablauf ----------
   function schritt(dt) {
@@ -637,6 +639,7 @@
       S.donner.forEach(dn => { if (!dn.los && qq >= dn.q) { dn.los = true; R_.ton(dn.ton); } });
       if (S.uhr >= ZEIT) zeitUm();
     } else if (S.phase === 'geschafft' && S.phaseT >= 1.3 * PAUSE + 0.2) weiter();
+    else if (S.phase === 'vollzeit' && S.phaseT >= VOLLZEIT.dauer * PAUSE) weiter();
     else if (S.phase === 'zeitum') {
       if (!S.uebersehenTon && S.phaseT >= UEBERSEHEN.ab) { S.uebersehenTon = true; if (sz.maengel.some(t => !t.gefunden)) R_.ton('uebersehen'); }
       if (S.phaseT >= UEBERSEHEN.ab + UEBERSEHEN.dauer * PAUSE + 0.3 * PAUSE) weiter();
@@ -652,6 +655,13 @@
   function zeitUm() {
     const sz = S.szene;
     S.uhr = ZEIT;
+    if (sz.gefunden >= sz.M) {   // alles gefunden, nur nicht auf „Weiter“ getippt: 100 Punkte ohne Zeitbonus, kein Fehler-Auftritt
+      S.phase = 'vollzeit'; S.phaseT = 0;
+      R_.ton('gefunden');
+      figur('daumen', 1.6);
+      dachWerten(sz, 0);
+      return;
+    }
     S.phase = 'zeitum'; S.phaseT = 0; S.uebersehenTon = false; S.vorzeitig = false;
     S.blitz = { t0: S.zeit, pfad: blitzPfad() };
     R_.ton('zeitum'); R_.vibrieren([60, 40, 60]);
@@ -694,7 +704,9 @@
   }
   function figur(pose, dauer, hupf) { S.figur.pose = pose; S.figur.bis = S.zeit + dauer; if (hupf) S.figur.hupf = S.zeit; }
 
-  function bewertung(p) {
+  function bewertung(p, alles) {
+    // alle Mängel gefunden, aber Zeit abgelaufen statt „Weiter“ (MZ, 26.10.2026): kein „Mängel übersehen“
+    if (alles && p < 700) return ['Alles gefunden – zu langsam', 'MIT MÄNGELN', 'mittel', 'daumen'];
     if (p >= 900) return ['Nichts entgeht dir', 'GEPRÜFT', 'gut', 'jubel'];
     if (p >= 800) return ['Scharfer Prüferblick', 'GEPRÜFT', 'gut', 'jubel'];
     if (p >= 700) return ['Gründlich geprüft', 'GEPRÜFT', 'gut', 'daumen'];
@@ -703,8 +715,8 @@
   }
   function endbild() {
     const punkte = Math.max(1, Math.min(1000, Math.round(S.punkte)));
-    const [titel, stempel, art, pose] = bewertung(punkte);
     const gef = S.ergebnisse.reduce((a, e) => a + e.gefunden, 0), ges = S.ergebnisse.reduce((a, e) => a + e.M, 0);
+    const [titel, stempel, art, pose] = bewertung(punkte, ges > 0 && gef >= ges);
     const felder = [['Mängel gefunden', gef + ' von ' + ges], ['Fehltipps', String(S.fehltipps)]];
     R_.ende(punkte, { ueberschrift: titel, felder, stempel: { text: stempel, art }, figur: POSEN[pose], verzoegerung: 500 });
   }
@@ -722,6 +734,7 @@
     if (!S || !S.szene) return;
     S.klicks.push({ x, y, t0: S.zeit });
     if (S.phase === 'zeitum' && S.phaseT >= UEBERSEHEN.ab + UEBERSEHEN.sperre) { weiter(); return; }   // Anzeige überspringen
+    if (S.phase === 'vollzeit' && S.phaseT >= VOLLZEIT.sperre) { weiter(); return; }
     if (S.phase !== 'suchen') return;
     const kr = knopfRect();
     if (x >= kr[0] - 4 && x <= kr[2] + 4 && y >= kr[1] - 4 && y <= kr[3] + 4) { S.knopfDruck = S.zeit; fertigTippen(); return; }
@@ -789,7 +802,8 @@
     blitzZeichnen(g, sz, t, ruh);
     if (S.phase !== 'wechsel' && S.phase !== 'herein') markenZeichnen(g, sz, t, ruh);
     figurZeichnen(g, zustand);
-    if (S.phase === 'suchen' || S.phase === 'geschafft' || S.phase === 'zeitum') zeitbalken(g, ruh);
+    if (S.phase === 'suchen' || S.phase === 'geschafft' || S.phase === 'zeitum' || S.phase === 'vollzeit') zeitbalken(g, ruh);
+    if (S.phase === 'vollzeit') vollSchild(g, t, ruh);
     if (S.hinweis && S.nr === 0 && S.phase === 'suchen' && S.uhr < 4.5) hinweisZeichnen(g, t, ruh);
     if (zustand === 'spiel' && S.phase === 'suchen') weiterKnopf(g, t);
     abzuegeZeichnen(g);
@@ -1076,6 +1090,19 @@
     g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 10;
     g.fillStyle = 'rgba(255,255,255,.95)'; rund(g, tx, ty, tw, 30, 15); g.fill(); g.shadowColor = 'transparent';
     g.fillStyle = '#191919'; g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillText(text, B / 2, ty + 16);
+    g.restore();
+  }
+  // Schild „Alle Mängel gefunden“ (Zeit um ohne Fehler): Stil des Hinweis-Kärtchens, etwas größer, sanft ein- und ausgeblendet
+  function vollSchild(g, t, ruh) {
+    const d = VOLLZEIT.dauer * PAUSE, a = Math.min(1, S.phaseT / 0.25, (d - S.phaseT) / 0.3);
+    if (a <= 0) return;
+    const text = 'Alle Mängel gefunden', gr = Math.max(15, Math.min(19, B / 24));
+    g.save(); g.globalAlpha = a;
+    g.font = `700 ${gr}px "Titillium Web", "Segoe UI", system-ui, sans-serif`;
+    const tw = g.measureText(text).width + 34, th = gr + 20, tx = (B - tw) / 2, ty = 78 + (ruh ? 0 : 6 * (1 - Math.min(1, S.phaseT / 0.25)));
+    g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 10;
+    g.fillStyle = 'rgba(255,255,255,.96)'; rund(g, tx, ty, tw, th, th / 2); g.fill(); g.shadowColor = 'transparent';
+    g.fillStyle = '#191919'; g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillText(text, B / 2, ty + th / 2 + 1);
     g.restore();
   }
   function abzuegeZeichnen(g) {
